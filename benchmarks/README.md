@@ -115,11 +115,11 @@ Regenerate the row-level predictions with the published scorer paths. The commit
 score_set () {
   input=$1
   stem=$2
-  CUDA_VISIBLE_DEVICES=0 semif-score --mode serial \
+  CUDA_VISIBLE_DEVICES=0 fastjev-score --mode serial \
     --model Qwen/Qwen3.5-4B \
     --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a \
     --input "$input" --output "direct-$stem.jsonl"
-  CUDA_VISIBLE_DEVICES=0 semif-score --mode reranker \
+  CUDA_VISIBLE_DEVICES=0 fastjev-score --mode reranker \
     --model Qwen/Qwen3-Reranker-4B \
     --revision 22e683669bc0f0bd69640a1354a6d0aebcfeede5 \
     --input "$input" --output "reranker-$stem.jsonl"

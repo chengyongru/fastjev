@@ -1,12 +1,10 @@
-# SemIf (formerly OpenJev)
+# fastjev
 
 <div align="center">
 
-**Semantic ifs from open models, on a 3090 at home.**
+**An SDK-first toolkit for fast, self-hosted semantic decisions with open models.**
 
-*Independent project; not affiliated with Jev or TypeSafe.*
-
-**Wow! No waitlist.** [Run it in your browser today.](webgpu-demo/index.html)
+*An independently maintained fork of [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf).*
 
 [![Measured replay: typed decisions appear together while JSON streams token by token](demo/assets/semif-phase1-replay.gif)](demo/index.html)
 
@@ -14,9 +12,17 @@
 
 </div>
 
-> **Independent research project.** SemIf was formerly called OpenJev. It is not affiliated with or endorsed by TypeSafe. Jev, TypeSafe, and other names and marks are the property of their respective owners. No infringement is intended.
+> **Fork lineage and independence.** fastjev preserves the Git history and MIT license of [SemIf](https://github.com/TheoLeeCJ/SemIf), formerly OpenJev, while following an independent roadmap. fastjev is not affiliated with or endorsed by TheoLeeCJ, TypeSafe, or Jev. Jev, TypeSafe, and other names and marks remain the property of their respective owners.
 
-![Some AI company asks you to join a waitlist; SemIf runs in your browser today](assets/semif-no-waitlist.png)
+## Why fastjev
+
+fastjev has three priorities, in this order:
+
+- **SDK-first integration:** the public Python package is the primary interface for applications. CLI commands remain available for reproducibility, operations, and debugging.
+- **Independent iteration:** maintainers can choose release timing, compatibility policy, and engineering priorities without waiting for upstream changes.
+- **Faster inference:** generation-free scoring, resident model serving, measured cache reuse, and backend profiling are first-class priorities. Performance changes must include reproducible evidence and must not trade away decision quality silently.
+
+Faster inference is a project direction, not an unqualified claim that every fastjev path is faster or more accurate than upstream, Jev, or another serving stack. The measurements below define the hardware, models, workloads, and known semantic differences. Historical benchmark artifacts and media retain SemIf/OpenJev names where renaming would invalidate checksums or misrepresent recorded runs.
 
 Most agent decisions are small: *route this*, *retry that*, *does the evidence support X?* A chat model can answer them, but it spends time generating text that software immediately parses back into an `if` statement.
 
@@ -24,12 +30,13 @@ Jev is TypeSafe's closed service for runtime-defined semantic decisions. This pr
 
 This baseline reads typed option probabilities directly from a model. No answer sentence, JSON repair, or decoding loop.
 
-### Latest changes — 2026-09-18
+### Current focus
 
-- Added MiniCPM5 2B and Qwen3.5 4B to the browser demo.
-- Added **Unsloppify site**, a switch to a conventional interface.
+- Serve the documented System One wire shape from a resident open model.
+- Reduce decision latency without silently changing direct-scoring semantics.
+- Keep model revisions, benchmark inputs, row-level outputs, and limitations auditable.
 
-## Quick start
+## SDK quick start
 
 **Apple Silicon:** use the native [MLX backend](docs/MLX.md) for direct scoring,
 serial prefix reuse, and parallel shared-state decisions on macOS arm64.
@@ -44,10 +51,40 @@ export HF_HOME=/path/to/large-drive/huggingface
 pip install -e '.[test]'
 ```
 
-Run the owned examples:
+Keep the loaded model resident and score runtime-defined decisions directly from Python:
+
+```python
+from fastjev import load_causal_model, score_direct
+
+model, tokenizer, metadata = load_causal_model(
+    "Qwen/Qwen3.5-4B",
+    "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+)
+result = score_direct(
+    model,
+    tokenizer,
+    {
+        "id": "route-1",
+        "state": "Customer cannot access an account after a password reset.",
+        "question": "Which queue should handle this request?",
+        "options": [
+            {"id": "access", "description": "Account access support."},
+            {"id": "billing", "description": "Billing support."},
+        ],
+    },
+    metadata,
+)
+print(result["probabilities"])
+```
+
+The SDK also exports `SystemOneService` for in-process use of the documented System One request and response shape. Install `.[api]` and import `create_app` from `fastjev.http` only when an HTTP boundary is needed.
+
+## CLI and service wrappers
+
+Run the owned examples from a shell:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 semif-score \
+CUDA_VISIBLE_DEVICES=0 fastjev-score \
   --mode direct \
   --model Qwen/Qwen3.5-4B \
   --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a \
@@ -58,6 +95,12 @@ CUDA_VISIBLE_DEVICES=0 semif-score \
 Each result contains typed option scores, timing, the exact model revision, and a prompt hash.
 
 If every row has the same exact state, switch to `--mode shared` to prefill it once and evaluate the criteria in parallel.
+
+### System One-compatible HTTP API
+
+Install the `api` extra and run `fastjev-serve` to keep one model resident behind `POST /v1/systemone` and `GET /v1/models`. The adapter accepts TypeSafe's documented `state`, `model`, and `questions` wire shape, including `noul`, `choice`, and `score` questions. It does not serve Jev or reproduce Jev calibration; requests must name the configured fastjev model.
+
+See [System One-compatible API](docs/SYSTEM_ONE_API.md) for the server command, request example, authentication, confidence definition, and compatibility limits.
 
 ## How it works
 
@@ -151,16 +194,13 @@ Returned probabilities are conditional on the supplied options. Calibrate and va
 - [Results](docs/RESULTS.md) — quality, speed, perturbations, and claim boundaries
 - [Method](docs/METHOD.md) — frozen prompts, metrics, and timing scope
 - [Reproduce](docs/REPRODUCE.md) — exact environment, pinned commands, perturbations, and verification
+- [System One-compatible API](docs/SYSTEM_ONE_API.md) — HTTP server, wire format, and compatibility boundaries
 - [Interactive replay](demo/index.html)
 - [Browser-only WebGPU demo](webgpu-demo/index.html) — no waitlist; use it today
 - [Machine-readable summary](results/phase1-summary.json)
 - [Benchmark bundle](benchmarks/README.md) — fixtures, runners, selection IDs, and reproduction commands
 - [Raw results and checksums](results/raw/)
 - [Third-party sources](THIRD_PARTY.md)
-
-## Star history
-
-[![SemIf star history](https://api.star-history.com/svg?repos=TheoLeeCJ/SemIf&type=Date)](https://www.star-history.com/#TheoLeeCJ/SemIf&Date)
 
 ## Evaluation sources
 
@@ -170,3 +210,5 @@ Returned probabilities are conditional on the supplied options. Calibrate and va
 - [Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B), [MiniCPM5-2B](https://huggingface.co/openbmb/MiniCPM5-2B), [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B), and [Qwen3-Reranker-4B](https://huggingface.co/Qwen/Qwen3-Reranker-4B) — frozen baseline models
 
 Model weights and third-party source records are not included. Upstream models retain their licenses. Project code is released under the [MIT License](LICENSE).
+
+The installed distribution and public Python package are both named `fastjev`; `fastjev-score` and `fastjev-serve` are secondary wrappers. The internal `semif_phase1` package and the `semif-score`/`semif-serve` command aliases are retained for compatibility with inherited scripts and artifacts.

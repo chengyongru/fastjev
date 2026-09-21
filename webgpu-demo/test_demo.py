@@ -69,7 +69,7 @@ def test_live_comparison_and_limits():
 
 def test_identity_notice_and_ui_mode_switch():
     text = sources()
-    assert ">SemIf (formerly OpenJev)<" in text["index.html"]
+    assert ">fastjev<" in text["index.html"]
     assert "Independent research project" in text["index.html"]
     assert "Not affiliated with or endorsed by TypeSafe" in text["index.html"]
     assert "Formerly called OpenJev" in text["index.html"]

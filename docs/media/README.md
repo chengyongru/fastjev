@@ -19,11 +19,11 @@ selects the largest recorded probability for each row; it is presentation of
 the saved output, not additional inference. `1.0000` is rounded to four decimals.
 
 This historical recording retains the former OpenJev name and command.
-For the current SemIf checkout, run from the repository root after installing
+For the current fastjev checkout, run from the repository root after installing
 the MLX extra:
 
 ```bash
-semif-score --backend mlx --mode direct \
+fastjev-score --backend mlx --mode direct \
   --model Qwen/Qwen3.5-4B \
   --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a \
   --input examples/decisions.jsonl \
