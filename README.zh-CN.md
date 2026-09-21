@@ -14,7 +14,7 @@
 
 </div>
 
-FastJev 是处理 AI 系统中“小决策”的开源 Python SDK：*应该分到哪个队列？是否允许执行这个动作？现有证据是否充分？风险有多高？* 它使用自托管开放模型评估运行时定义的 `Choice`、`Boolean` 和 `Score` 问题，返回稳定值与完整选项分布。
+FastJev 是处理 AI 系统中“小决策”的开源 Python SDK。*应该分到哪个队列？是否允许执行这个动作？现有证据是否充分？风险有多高？* 它使用自托管开放模型评估运行时定义的 `Choice`、`Boolean` 和 `Score` 问题，返回稳定值与完整选项分布。
 
 FastJev 专注语义决策推理。每次请求都可以携带新的标准和选项，固定的基础 checkpoint 通过 prompting 处理新任务。
 
@@ -32,13 +32,13 @@ FastJev 专注语义决策推理。每次请求都可以携带新的标准和选
 
 ## 为什么选择 FastJev？
 
-评分原理很直接：因果语言模型可以暴露 next-token logits。FastJev 把这项能力封装成完整应用层：
+评分原理很直接。因果语言模型可以暴露 next token logits。FastJev 把这项能力封装成完整应用层。
 
-- **运行时定义决策：** 每次请求直接提交新的标准和选项说明，固定的基础 checkpoint 通过 prompting 评分。
-- **直接返回类型化结果：** Torch 和 MLX 读取声明选项的 logits，输出 token 数量为 0，并在一次评分中返回类型化值。
-- **稳定的类型协议：** 输入验证、2–16 个选项槽位、归一化分布、`Choice`/`Boolean`/`Score` 结果和一致的错误边界。
-- **完整的部署边界：** 常驻 Torch、批量 vLLM、原生 MLX、CLI 和可选的 System One 兼容 HTTP API 使用同一结果模型。
-- **运行可审计：** 固定模型 revision，并保留 prompt hash、逐行预测、原始计时和校验和。
+- **运行时定义决策。** 每次请求直接提交新的标准和选项说明，固定的基础 checkpoint 通过 prompting 评分。
+- **直接返回类型化结果。** Torch 和 MLX 读取声明选项的 logits，输出 token 数量为 0，并在一次评分中返回类型化值。
+- **稳定的类型协议。** 输入验证、2 至 16 个选项槽位、归一化分布、`Choice`/`Boolean`/`Score` 结果和一致的错误边界。
+- **完整的部署边界。** 常驻 Torch、批量 vLLM、原生 MLX、CLI 和可选的 System One 兼容 HTTP API 使用同一结果模型。
+- **运行可审计。** 固定模型 revision，并保留 prompt hash、逐行预测、原始计时和校验和。
 
 [llama.cpp](https://github.com/ggml-org/llama.cpp) 为单个二元 prompt 和原始 logprobs 提供精简路径。FastJev 把重复出现的判断封装成类型稳定、可迁移、可测试、可追溯的应用接口。
 
@@ -57,7 +57,7 @@ FastJev 专注语义决策推理。每次请求都可以携带新的标准和选
 
 ## 可以直接运行的模型
 
-以下固定 checkpoint 都通过了相同的原生 BF16 直接 logits 接口验证。把任意模型 ID 与 revision 填入后面的快速开始代码即可：
+以下固定 checkpoint 都通过了相同的原生 BF16 直接 logits 接口验证。把任意模型 ID 与 revision 填入后面的快速开始代码即可。
 
 | 模型 | 固定源 revision | 推荐场景 | 自编数据平衡准确率 | 浏览器选项 |
 |---|---|---|---:|---:|
@@ -109,9 +109,9 @@ print(result.provenance)
 
 ## 实测结果
 
-### RTX 5090：Torch 与 vLLM
+### RTX 5090 上的 Torch 与 vLLM
 
-同机集成测试使用固定的 Qwen3.5-4B checkpoint、完全相同的三个问题输入（125、152 和 151 token）、一次 warmup 和七次 `decide_many` 计时：
+同机集成测试使用固定的 Qwen3.5-4B checkpoint、完全相同的三个问题输入（125、152 和 151 token）、一次 warmup 和七次 `decide_many` 计时。
 
 | 后端 | 模型加载 | 三项决策 batch 中位耗时 | 决策/秒 |
 |---|---:|---:|---:|
@@ -126,8 +126,8 @@ print(result.provenance)
 
 | 冻结工作负载 | FastJev 直接 Qwen3.5-4B | Qwen3-Reranker-4B | 已发布 Jev |
 |---|---:|---:|---:|
-| 自编决策，144 行 | **0.813** | 0.625 | — |
-| WANLI，256 行 | **0.637** | 0.522 | — |
+| 自编决策，144 行 | **0.813** | 0.625 | N/A |
+| WANLI，256 行 | **0.637** | 0.522 | N/A |
 | TypeSafe 公开子集，102 行 / 20 个 case | **0.845** | 0.560 | 0.883 |
 
 前两行是平衡准确率，第三行是按 case 等权的众数一致率。Jev 一列复述公开记录，两个开放模型列来自本地冻结评估。完整数据、扰动测试与声明边界见[结果文档](docs/RESULTS.zh-CN.md)。
@@ -145,17 +145,17 @@ print(result.provenance)
 
 ## 文档
 
-- [结果](docs/RESULTS.zh-CN.md) — 速度、质量、扰动测试和限制
-- [方法](docs/METHOD.zh-CN.md) — 固定 prompt、指标和计时范围
-- [复现](docs/REPRODUCE.zh-CN.md) — 固定环境和验证命令
-- [基准包](benchmarks/README.zh-CN.md) — fixture、runner 和来源选择
+- [结果](docs/RESULTS.zh-CN.md)。速度、质量、扰动测试和限制
+- [方法](docs/METHOD.zh-CN.md)。固定 prompt、指标和计时范围
+- [复现](docs/REPRODUCE.zh-CN.md)。固定环境和验证命令
+- [基准包](benchmarks/README.zh-CN.md)。fixture、runner 和来源选择
 - [交互回放](demo/index.html)与[纯浏览器 WebGPU demo](webgpu-demo/index.html)
 
 ## 使用边界与来源
 
 FastJev 返回以所给选项为条件的概率，并标记 `calibrated=False`。实际部署工作负载上的验证与校准用于建立高影响自动化阈值。实验性的共享前缀模式可能改变接近决策边界的 BF16 argmax。
 
-模型权重保存在上游站点，第三方评估记录保存在原始来源。上游模型沿用各自许可证，精确 revision 记录在 [THIRD_PARTY.zh-CN.md](THIRD_PARTY.zh-CN.md)。
+模型权重保存在上游站点，第三方评估记录保存在原始来源。上游模型沿用各自许可证，精确 revision 记录在[第三方清单](THIRD_PARTY.zh-CN.md)。
 
 FastJev 是 [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf)（原名 OpenJev）的独立维护分支，保留原始 Git 历史和 MIT 许可证，并采用独立路线图。FastJev、TheoLeeCJ/SemIf、TypeSafe 和 Jev 分别作为独立项目运行。FastJev 使用开放模型实现公开的接口模式；Jev 管理其专有模型、训练方法、校准能力和性能声明。
 
