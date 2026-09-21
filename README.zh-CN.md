@@ -32,13 +32,13 @@ FastJev 专注语义决策推理。每次请求都可以携带新的标准和选
 
 ## 为什么选择 FastJev？
 
-评分原理很直接。因果语言模型可以暴露 next token logits。FastJev 把这项能力封装成完整应用层。
+评分原理很直接。因果语言模型提供 next token logits。FastJev 将这些 logits 封装为完整的应用接口。
 
-- **运行时定义决策。** 每次请求直接提交新的标准和选项说明，固定的基础 checkpoint 通过 prompting 评分。
-- **直接返回类型化结果。** Torch 和 MLX 读取声明选项的 logits，输出 token 数量为 0，并在一次评分中返回类型化值。
-- **稳定的类型协议。** 输入验证、2 至 16 个选项槽位、归一化分布、`Choice`/`Boolean`/`Score` 结果和一致的错误边界。
-- **完整的部署边界。** 常驻 Torch、批量 vLLM、原生 MLX、CLI 和可选的 System One 兼容 HTTP API 使用同一结果模型。
-- **运行可审计。** 固定模型 revision，并保留 prompt hash、逐行预测、原始计时和校验和。
+每次请求携带自己的标准和选项说明。固定的基础 checkpoint 通过 prompting 评分。Torch 和 MLX 读取声明选项的 logits，在一次评分中返回类型化值，输出 token 数量为 0。
+
+每次调用都使用同一套协议，可以声明 2 至 16 个选项。结果使用 `Choice`、`Boolean` 或 `Score`，并包含归一化分布。常驻 Torch、批量 vLLM、原生 MLX、CLI 和 System One 兼容 HTTP API 共享输入验证、结果模型和错误边界。
+
+固定模型 revision、prompt hash、逐行预测、原始计时和校验和与代码一起保存，用于追溯每次运行。
 
 [llama.cpp](https://github.com/ggml-org/llama.cpp) 为单个二元 prompt 和原始 logprobs 提供精简路径。FastJev 把重复出现的判断封装成类型稳定、可迁移、可测试、可追溯的应用接口。
 
@@ -63,13 +63,13 @@ FastJev 专注语义决策推理。每次请求都可以携带新的标准和选
 |---|---|---|---:|---:|
 | [Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B) | `c1899de289a04d12100db370d81485cdf75e47ca` | 最小入门模型 | 0.440 | Q8_0，639 MB |
 | [MiniCPM5-2B](https://huggingface.co/openbmb/MiniCPM5-2B) | `12a3808a956f869c767195e9266b59c4d21d92e2` | 体积与质量平衡 | 0.686 | Q4_K_M，1.56 GB |
-| **[Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B)** | `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` | **推荐；实测质量最佳** | **0.813** | Q4_K_M，3.01 GB |
+| **[Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B)** | `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` | **推荐模型，实测质量最高** | **0.813** | Q4_K_M，3.01 GB |
 
-表格报告原生 BF16 checkpoint 的质量。浏览器模型采用独立的量化格式；精确预测行、revision 和浏览器冒烟结果见[模型梯度原始报告](results/raw/browser-model-ladder.json)。
+表格报告原生 BF16 checkpoint 的质量。浏览器模型采用独立的量化格式。[模型梯度原始报告](results/raw/browser-model-ladder.json)收录精确预测行、revision 和浏览器冒烟结果。
 
 ## 快速开始
 
-默认后端需要 Python 3.10+、CUDA，以及仅一块可见 GPU。Qwen3.5-4B 源 checkpoint 占用约 9 GB 磁盘；历史 [RTX 5090 SDK 冒烟测试](https://github.com/chengyongru/fastjev/pull/5)测得峰值 GPU 分配为 7.891 GiB。
+默认后端需要 Python 3.10+、CUDA 和一块可见 GPU。Qwen3.5-4B 源 checkpoint 占用约 9 GB 磁盘。历史 [RTX 5090 SDK 冒烟测试](https://github.com/chengyongru/fastjev/pull/5)测得峰值 GPU 分配为 7.891 GiB。
 
 ```bash
 git clone https://github.com/chengyongru/fastjev.git
@@ -130,7 +130,7 @@ print(result.provenance)
 | WANLI，256 行 | **0.637** | 0.522 | N/A |
 | TypeSafe 公开子集，102 行 / 20 个 case | **0.845** | 0.560 | 0.883 |
 
-前两行是平衡准确率，第三行是按 case 等权的众数一致率。Jev 一列复述公开记录，两个开放模型列来自本地冻结评估。完整数据、扰动测试与声明边界见[结果文档](docs/RESULTS.zh-CN.md)。
+前两行使用平衡准确率。第三行使用按 case 等权的众数一致率。Jev 一列复述公开记录。两个开放模型列来自本地冻结评估。[结果文档](docs/RESULTS.zh-CN.md)收录完整数据、扰动测试与声明边界。
 
 ## 后端与接口
 
@@ -141,15 +141,11 @@ print(result.provenance)
 | MLX/Apple Silicon | 查看 [MLX 指南](docs/MLX.zh-CN.md) | 原生 macOS arm64 推理 |
 | WebGPU/GGUF | 打开[浏览器 demo](webgpu-demo/index.html) | 浏览器本地推理 |
 
-使用 `fastjev-score` 处理 JSONL。安装 `.[api]` 并运行 `fastjev-serve`，即可提供 `POST /v1/systemone` 和 `GET /v1/models`。[SDK 指南](docs/SDK.zh-CN.md)介绍 batching 和自定义后端；[HTTP 指南](docs/SYSTEM_ONE_API.zh-CN.md)介绍服务配置、认证与兼容边界。
+使用 `fastjev-score` 处理 JSONL。安装 `.[api]` 并运行 `fastjev-serve`，即可提供 `POST /v1/systemone` 和 `GET /v1/models`。[SDK 指南](docs/SDK.zh-CN.md)介绍 batching 和自定义后端。[HTTP 指南](docs/SYSTEM_ONE_API.zh-CN.md)介绍服务配置、认证与兼容边界。
 
 ## 文档
 
-- [结果](docs/RESULTS.zh-CN.md)。速度、质量、扰动测试和限制
-- [方法](docs/METHOD.zh-CN.md)。固定 prompt、指标和计时范围
-- [复现](docs/REPRODUCE.zh-CN.md)。固定环境和验证命令
-- [基准包](benchmarks/README.zh-CN.md)。fixture、runner 和来源选择
-- [交互回放](demo/index.html)与[纯浏览器 WebGPU demo](webgpu-demo/index.html)
+[结果文档](docs/RESULTS.zh-CN.md)介绍速度、质量、扰动测试和限制。[方法文档](docs/METHOD.zh-CN.md)记录固定 prompt、指标和计时范围。[复现指南](docs/REPRODUCE.zh-CN.md)提供固定环境和验证命令。[基准包](benchmarks/README.zh-CN.md)包含 fixture、runner 和来源选择。[交互回放](demo/index.html)与[纯浏览器 WebGPU demo](webgpu-demo/index.html)用于可视化浏览项目。
 
 ## 使用边界与来源
 
@@ -157,6 +153,6 @@ FastJev 返回以所给选项为条件的概率，并标记 `calibrated=False`�
 
 模型权重保存在上游站点，第三方评估记录保存在原始来源。上游模型沿用各自许可证，精确 revision 记录在[第三方清单](THIRD_PARTY.zh-CN.md)。
 
-FastJev 是 [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf)（原名 OpenJev）的独立维护分支，保留原始 Git 历史和 MIT 许可证，并采用独立路线图。FastJev、TheoLeeCJ/SemIf、TypeSafe 和 Jev 分别作为独立项目运行。FastJev 使用开放模型实现公开的接口模式；Jev 管理其专有模型、训练方法、校准能力和性能声明。
+FastJev 是 [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf)（原名 OpenJev）的独立维护分支，保留原始 Git 历史和 MIT 许可证，并采用独立路线图。FastJev、TheoLeeCJ/SemIf、TypeSafe 和 Jev 分别作为独立项目运行。FastJev 使用开放模型实现公开的接口模式。Jev 管理其专有模型、训练方法、校准能力和性能声明。
 
 项目代码按 [MIT 许可证](LICENSE)发布。

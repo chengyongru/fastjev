@@ -21,7 +21,7 @@ runtime with open models on your infrastructure. Each result contains a stable
 value and the option distribution.
 
 FastJev specializes in semantic decision inference. Each request supplies its
-own criteria and options; pinned base checkpoints handle new tasks through
+own criteria and options. Pinned base checkpoints handle new tasks through
 prompting.
 
 ## What can you build?
@@ -40,20 +40,21 @@ token usage, timing, model revision, prompt version, and `calibrated=False`.
 ## Why FastJev?
 
 The scoring primitive is simple. A causal model exposes next token logits.
-FastJev packages that primitive as an application layer.
+FastJev turns those logits into a complete application interface.
 
-- **Decisions defined at runtime.** Submit new criteria and option descriptions at
-  runtime; pinned base checkpoints score them through prompting.
-- **Direct typed output.** The Torch and MLX backends read declared option
-  logits, consume zero output tokens, and return typed values in one scoring
-  pass.
-- **A stable typed contract.** Input validation, 2 to 16 option slots, normalized
-  distributions, `Choice`/`Boolean`/`Score` values, and consistent errors.
-- **Production boundaries.** Resident Torch, batched vLLM, native MLX, a CLI,
-  and an optional HTTP API compatible with System One share the same result
-  model.
-- **Auditable runs.** Immutable model revisions, prompt hashes, predictions for
-  each row, raw timings, and checksums are kept with the code.
+Each request carries its own criteria and option descriptions. Pinned base
+checkpoints score them through prompting. Torch and MLX read the declared
+option logits and return a typed value in one pass while generating zero output
+tokens.
+
+Every call follows the same contract across 2 to 16 options. The result uses
+`Choice`, `Boolean`, or `Score` and includes a normalized distribution. Input
+validation and error behavior remain consistent across resident Torch, batched
+vLLM, native MLX, the CLI, and the optional HTTP API compatible with System
+One.
+
+Pinned model revisions, prompt hashes, predictions for each row, raw timings,
+and checksums make each run auditable alongside the code.
 
 [llama.cpp](https://github.com/ggml-org/llama.cpp) directly offers a compact
 path for a single binary prompt and raw logprobs. FastJev turns repeated
@@ -87,10 +88,10 @@ checkpoints. Put any listed model ID and revision into the quick start below.
 |---|---|---|---:|---:|
 | [Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B) | `c1899de289a04d12100db370d81485cdf75e47ca` | Smallest starting point | 0.440 | Q8_0, 639 MB |
 | [MiniCPM5-2B](https://huggingface.co/openbmb/MiniCPM5-2B) | `12a3808a956f869c767195e9266b59c4d21d92e2` | Size/quality balance | 0.686 | Q4_K_M, 1.56 GB |
-| **[Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B)** | `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` | **Recommended; best measured quality** | **0.813** | Q4_K_M, 3.01 GB |
+| **[Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B)** | `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` | **Recommended for highest measured quality** | **0.813** | Q4_K_M, 3.01 GB |
 
 The table reports native BF16 checkpoint quality. Browser artifacts use
-separate quantized formats; their smoke results, exact rows, and revisions are
+separate quantized formats. Their smoke results, exact rows, and revisions are
 in the [model ladder report](results/raw/browser-model-ladder.json).
 
 ## Quick start
@@ -170,10 +171,11 @@ committed row data.
 | WANLI, 256 rows | **0.637** | 0.522 | N/A |
 | TypeSafe public subset, 102 rows / 20 cases | **0.845** | 0.560 | 0.883 |
 
-The first two rows report balanced accuracy; the third reports modal agreement
-with equal weighting across cases. The Jev column reproduces public records;
-the two open model columns come from local frozen evaluations. See the full
-[results, perturbations, and claim boundaries](docs/RESULTS.md).
+The first two rows report balanced accuracy. The third reports modal agreement
+with equal weighting across cases. The Jev column reproduces public records.
+The two open model columns come from local frozen evaluations. The
+[results report](docs/RESULTS.md) provides the full data, perturbations, and
+claim boundaries.
 
 ## Backends and interfaces
 
@@ -186,17 +188,20 @@ the two open model columns come from local frozen evaluations. See the full
 
 Use `fastjev-score` for JSONL jobs. Install `.[api]` and run
 `fastjev-serve` for `POST /v1/systemone` and `GET /v1/models`. The
-[SDK guide](docs/SDK.md) covers batching and custom backends; the
+[SDK guide](docs/SDK.md) covers batching and custom backends. The
 [HTTP guide](docs/SYSTEM_ONE_API.md) covers server setup, authentication, and
 compatibility boundaries.
 
 ## Documentation
 
-- [Results](docs/RESULTS.md). Speed, quality, perturbations, and limitations
-- [Method](docs/METHOD.md). Frozen prompts, metrics, and timing scope
-- [Reproduce](docs/REPRODUCE.md). Pinned environments and verification commands
-- [Benchmark bundle](benchmarks/README.md). Fixtures, runners, and source selection
-- [Interactive replay](demo/index.html) and [WebGPU browser demo](webgpu-demo/index.html)
+The [results report](docs/RESULTS.md) covers speed, quality, perturbations, and
+limitations. The [method guide](docs/METHOD.md) documents frozen prompts,
+metrics, and timing scope. The [reproduction guide](docs/REPRODUCE.md) provides
+pinned environments and verification commands. The
+[benchmark bundle](benchmarks/README.md) contains fixtures, runners, and source
+selection. The [interactive replay](demo/index.html) and
+[WebGPU browser demo](webgpu-demo/index.html) provide visual ways to explore
+the project.
 
 ## Boundaries and provenance
 
@@ -207,14 +212,15 @@ automation. The experimental shared prefix modes can change close BF16 argmax
 results.
 
 Model weights stay on upstream hosts, and third party evaluation records stay
-with their original sources. Upstream models retain their licenses; exact
+with their original sources. Upstream models retain their licenses. Exact
 revisions are listed in [THIRD_PARTY.md](THIRD_PARTY.md).
 
 FastJev is an independently maintained fork of
 [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf), formerly OpenJev. It
 preserves the original Git history and MIT license and follows an independent
 roadmap. FastJev, TheoLeeCJ/SemIf, TypeSafe, and Jev operate as independent
-projects. FastJev implements published interface patterns with open models; Jev
-controls its proprietary model, training, calibration, and performance claims.
+projects. FastJev implements published interface patterns with open models.
+Jev controls its proprietary model, training, calibration, and performance
+claims.
 
 Project code is released under the [MIT License](LICENSE).
