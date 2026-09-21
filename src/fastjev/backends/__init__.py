@@ -9,6 +9,7 @@ from .base import (
     JsonValue,
     ScoringBackend,
 )
+from .llama_cpp import LlamaCppBackend
 from .mlx import MLXBackend
 from .torch import TorchBackend
 from .vllm import VLLMBackend
@@ -20,6 +21,7 @@ __all__ = [
     "BackendRequest",
     "BackendResult",
     "JsonValue",
+    "LlamaCppBackend",
     "MLXBackend",
     "ScoringBackend",
     "TorchBackend",

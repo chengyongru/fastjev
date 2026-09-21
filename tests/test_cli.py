@@ -7,9 +7,11 @@ from semif_phase1.cli import main
 
 @pytest.mark.parametrize("extra,message", [
     (["--backend", "mlx", "--mode", "reranker"], "reranker requires torch"),
+    (["--backend", "llama-cpp", "--mode", "serial"], "llama-cpp supports direct mode only"),
     (["--mode", "direct", "--mlx-bits", "4"], "requires --backend mlx"),
     (["--mode", "direct", "--mlx-cache-limit-mib", "0"], "requires --backend mlx"),
     (["--mode", "direct", "--backend", "mlx", "--mlx-cache-limit-mib", "-1"], "must be nonnegative"),
+    (["--mode", "direct", "--llama-cpp-filename", "model.gguf"], "requires --backend llama-cpp"),
 ])
 def test_invalid_backend_combinations_fail_before_loading(tmp_path, monkeypatch, capsys, extra, message):
     monkeypatch.setattr(sys, "argv", ["fastjev-score", "--model", "unused", "--revision", "unused",
@@ -45,3 +47,59 @@ def test_cli_passes_cache_limit_to_loader(tmp_path, monkeypatch, limit):
     monkeypatch.setattr(sys, 'argv', args)
     main()
     assert json.loads(output.read_text())['limit'] == (256 if limit is None else limit)
+
+
+def test_cli_passes_llama_cpp_options_to_loader(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+    import semif_phase1
+
+    observed = {}
+
+    def load_model(source, revision, *, filename, max_input_tokens, n_batch, n_gpu_layers):
+        observed.update(
+            source=source,
+            revision=revision,
+            filename=filename,
+            max_input_tokens=max_input_tokens,
+            n_batch=n_batch,
+            n_gpu_layers=n_gpu_layers,
+        )
+        return None, None, {"backend": "fixture"}
+
+    def score(_model, _tokenizer, row, metadata, max_tokens):
+        return {
+            "id": row["id"],
+            "option_ids": [option["id"] for option in row["options"]],
+            "probabilities": [0.5, 0.5],
+            "metadata": metadata,
+            "max_tokens": max_tokens,
+        }
+
+    fake_backend = SimpleNamespace(load_model=load_model, score=score)
+    monkeypatch.setattr(semif_phase1, "llama_cpp_backend", fake_backend, raising=False)
+    source, output = tmp_path / "input.jsonl", tmp_path / "output.jsonl"
+    source.write_text(json.dumps({
+        "id": "test",
+        "state": "Evidence",
+        "question": "Supported?",
+        "options": [{"id": "yes", "description": "Yes"}, {"id": "no", "description": "No"}],
+    }) + "\n")
+    monkeypatch.setattr(sys, "argv", [
+        "fastjev-score", "--backend", "llama-cpp", "--mode", "direct",
+        "--model", "fixture/repo", "--revision", "a" * 40, "--input", str(source),
+        "--output", str(output), "--max-tokens", "123", "--llama-cpp-n-batch", "64",
+        "--llama-cpp-n-gpu-layers", "7", "--llama-cpp-filename", "model-q4.gguf",
+    ])
+
+    main()
+
+    assert observed == {
+        "source": "fixture/repo",
+        "revision": "a" * 40,
+        "filename": "model-q4.gguf",
+        "max_input_tokens": 123,
+        "n_batch": 64,
+        "n_gpu_layers": 7,
+    }
+    assert json.loads(output.read_text())["max_tokens"] == 123
