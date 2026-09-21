@@ -8,52 +8,21 @@
 
 [English](README.md) | 简体中文
 
-<img src="assets/fastjev-cover.webp" alt="FastJev 自托管语义决策 SDK" width="100%">
+<img src="assets/fastjev-cover.webp" alt="FastJev 面向自部署的 Jev 开源实现" width="100%">
 
-**把非结构化状态直接变成类型化决策。**
+**在自己的基础设施上部署 Jev 的开源实现。**
 
 </div>
 
-FastJev 是处理 AI 系统中“小决策”的开源 Python SDK。*应该分到哪个队列？是否允许执行这个动作？现有证据是否充分？风险有多高？* 它使用自托管开放模型评估运行时定义的 `Choice`、`Boolean` 和 `Score` 问题，返回稳定值与完整选项分布。
-
-FastJev 专注语义决策推理。每次请求都可以携带新的标准和选项，固定的基础 checkpoint 通过 prompting 处理新任务。
-
-## 可以用它做什么？
-
-| 应用 | 示例决策 | 类型化结果 |
-|---|---|---|
-| Agent 安全门 | “这个 shell 命令会破坏持久数据吗？” | `Boolean` |
-| 客服或邮件分流 | “哪个团队应该处理这个请求？” | `Choice` |
-| 证据检查 | “记录与这项主张的关系是什么？” | `Choice` |
-| 风险与优先级 | “这项事件有多严重？” | `Score` |
-| 模型或工具路由 | “下一步需要哪项能力？” | `Choice` |
-
-每项结果都包含选中值、全部声明选项的概率、token 用量、耗时、模型 revision、prompt 版本和 `calibrated=False`。
+FastJev 是面向自部署的 [Jev](https://docs.typesafe.ai/) 开源实现，也是 [SemIf](https://github.com/TheoLeeCJ/SemIf) 的持续维护分支。固定 revision 的开放模型通过 Torch、vLLM、MLX 和 llama.cpp 运行 `Choice`、`Boolean` 和 `Score` 接口。WebGPU demo 提供浏览器本地推理。
 
 ## 为什么选择 FastJev？
 
-评分原理很直接。因果语言模型提供 next token logits。FastJev 将这些 logits 封装为完整的应用接口。
+FastJev 把 Jev 自部署收敛为标准 Python 工作流。SDK 负责加载模型、验证 2 至 16 个选项、执行评分，并返回包含概率、token 用量、耗时、模型 revision 和 prompt 版本的类型化结果。
 
-每次请求携带自己的标准和选项说明。固定的基础 checkpoint 通过 prompting 评分。Torch 和 MLX 读取声明选项的 logits，在一次评分中返回类型化值，输出 token 数量为 0。
+常驻 Torch、批量 vLLM、原生 MLX、llama.cpp GGUF、CLI 和可选的 System One 兼容 HTTP API 共享同一结果模型。Torch、MLX 和 llama.cpp 在一次评分中返回结果，输出 token 数量为 0。
 
-每次调用都使用同一套协议，可以声明 2 至 16 个选项。结果使用 `Choice`、`Boolean` 或 `Score`，并包含归一化分布。常驻 Torch、批量 vLLM、原生 MLX、CLI 和 System One 兼容 HTTP API 共享输入验证、结果模型和错误边界。
-
-固定模型 revision、prompt hash、逐行预测、原始计时和校验和与代码一起保存，用于追溯每次运行。
-
-[llama.cpp](https://github.com/ggml-org/llama.cpp) 为单个二元 prompt 和原始 logprobs 提供精简路径。FastJev 把重复出现的判断封装成类型稳定、可迁移、可测试、可追溯的应用接口。
-
-## 与相邻项目的区别
-
-下表比较各项目的能力范围。每个项目发布的性能数据对应各自的工作负载。
-
-| 项目 | 核心机制 | 适合选择它的场景 | FastJev 的区别 |
-|---|---|---|---|
-| [Laya](https://github.com/NandhaKishorM/laya) | 小型专用决策模型，并行计算选项得分 | 低资源或多语言部署，尤其是愿意按工作负载微调时 | 使用标准开放因果模型处理运行时定义的决策，并提供固定 revision 和 4,096 token 默认输入上限 |
-| [semantic-router](https://github.com/aurelio-labs/semantic-router) | 路由样例的 embedding 相似度 | 路由与样例稳定，向量相似度足够解决问题时 | 每次请求都根据完整状态、新标准和选项含义作出判断 |
-| [Outlines](https://github.com/dottxt-ai/outlines) | 受约束的自回归生成 | 需要任意 JSON、正则、grammar 或抽取 schema 时 | 专注类型化决策，在一次评分中读取选项分数 |
-| [llama.cpp](https://github.com/ggml-org/llama.cpp) | 底层本地推理与 token logprobs | 需要完全控制 runtime 或只做一次性分类器时 | 增加类型化问题、prompt/槽位验证、来源记录、多后端、HTTP 兼容和冻结评估 |
-
-任意信息抽取适合结构化生成工具，固定路由体系适合 embedding router，领域匹配且具备训练数据的场景适合小型专用决策模型。运行时定义的 `Choice`、`Boolean` 和 `Score` 决策适合 FastJev。
+每项结果都记录模型 revision 和 prompt 版本。已发布评估还包含逐行数据、原始计时和校验和，用于精确复现。
 
 ## 可以直接运行的模型
 
@@ -132,6 +101,17 @@ print(result.provenance)
 
 前两行使用平衡准确率。第三行使用按 case 等权的众数一致率。Jev 一列复述公开记录。两个开放模型列来自本地冻结评估。[结果文档](docs/RESULTS.zh-CN.md)收录完整数据、扰动测试与声明边界。
 
+## 与相邻项目的区别
+
+这些项目面向相邻的部署需求。各项目发布的性能数据对应各自的工作负载。
+
+| 项目 | 核心机制 | 适合选择它的场景 | FastJev 的区别 |
+|---|---|---|---|
+| [Laya](https://github.com/NandhaKishorM/laya) | 小型专用决策模型，并行计算选项得分 | 低资源或多语言部署，尤其是愿意按工作负载微调时 | 使用标准开放因果模型处理运行时定义的决策，并提供固定 revision 和 4,096 token 默认输入上限 |
+| [semantic-router](https://github.com/aurelio-labs/semantic-router) | 路由样例的 embedding 相似度 | 路由与样例稳定，向量相似度足够解决问题时 | 每次请求都根据完整状态、新标准和选项含义作出判断 |
+| [Outlines](https://github.com/dottxt-ai/outlines) | 受约束的自回归生成 | 需要任意 JSON、正则、grammar 或抽取 schema 时 | 专注类型化决策，在一次评分中读取选项分数 |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) | 底层本地推理与 token logprobs | 需要完全控制 runtime 或只做一次性分类器时 | 将 llama.cpp 用作后端，并增加类型化问题、验证、来源记录、多 runtime、HTTP 兼容和冻结评估 |
+
 ## 后端与接口
 
 | Runtime | 安装 | 适用场景 |
@@ -139,6 +119,7 @@ print(result.provenance)
 | PyTorch/CUDA | `pip install -e '.[torch]'` | 默认直接 logits 评分 |
 | vLLM/CUDA | `pip install -e '.[vllm]'` | 批量常驻服务 |
 | MLX/Apple Silicon | 查看 [MLX 指南](docs/MLX.zh-CN.md) | 原生 macOS arm64 推理 |
+| llama.cpp/GGUF | `pip install -e '.[llama-cpp]'` | 本地或 Hugging Face 托管的 GGUF 文件 |
 | WebGPU/GGUF | 打开[浏览器 demo](webgpu-demo/index.html) | 浏览器本地推理 |
 
 使用 `fastjev-score` 处理 JSONL。安装 `.[api]` 并运行 `fastjev-serve`，即可提供 `POST /v1/systemone` 和 `GET /v1/models`。[SDK 指南](docs/SDK.zh-CN.md)介绍 batching 和自定义后端。[HTTP 指南](docs/SYSTEM_ONE_API.zh-CN.md)介绍服务配置、认证与兼容边界。
@@ -153,6 +134,6 @@ FastJev 返回以所给选项为条件的概率，并标记 `calibrated=False`�
 
 模型权重保存在上游站点，第三方评估记录保存在原始来源。上游模型沿用各自许可证，精确 revision 记录在[第三方清单](THIRD_PARTY.zh-CN.md)。
 
-FastJev 是 [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf)（原名 OpenJev）的独立维护分支，保留原始 Git 历史和 MIT 许可证，并采用独立路线图。FastJev、TheoLeeCJ/SemIf、TypeSafe 和 Jev 分别作为独立项目运行。FastJev 使用开放模型实现公开的接口模式。Jev 管理其专有模型、训练方法、校准能力和性能声明。
+[第三方清单](THIRD_PARTY.zh-CN.md)记录代码与模型来源。
 
 项目代码按 [MIT 许可证](LICENSE)发布。

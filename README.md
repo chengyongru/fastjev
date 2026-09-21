@@ -8,76 +8,31 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-<img src="assets/fastjev-cover.webp" alt="FastJev self hosted semantic decision SDK" width="100%">
+<img src="assets/fastjev-cover.webp" alt="FastJev open source Jev implementation for self deployment" width="100%">
 
-**Turn unstructured state into typed decisions.**
+**Deploy an open source Jev implementation on your own infrastructure.**
 
 </div>
 
-FastJev is an open source Python SDK for the small decisions inside AI systems.
-*Which queue? Should this action run? Is the evidence sufficient? How severe is
-the risk?* It evaluates `Choice`, `Boolean`, and `Score` questions defined at
-runtime with open models on your infrastructure. Each result contains a stable
-value and the option distribution.
-
-FastJev specializes in semantic decision inference. Each request supplies its
-own criteria and options. Pinned base checkpoints handle new tasks through
-prompting.
-
-## What can you build?
-
-| Application | Example decision | Typed result |
-|---|---|---|
-| Agent safeguard | “Can this proposed shell command destroy durable state?” | `Boolean` |
-| Support or email triage | “Which team should handle this request?” | `Choice` |
-| Evidence gate | “Does this record support, refute, or omit the claim?” | `Choice` |
-| Risk and priority | “How severe is this incident?” | `Score` |
-| Model/tool routing | “Which capability is needed next?” | `Choice` |
-
-Each result includes the selected value, all declared option probabilities,
-token usage, timing, model revision, prompt version, and `calibrated=False`.
+FastJev is an open source implementation of
+[Jev](https://docs.typesafe.ai/) for deployment on infrastructure you control.
+It continues [SemIf](https://github.com/TheoLeeCJ/SemIf) as an independently
+maintained fork. Pinned open models run the `Choice`, `Boolean`, and `Score`
+interface through Torch, vLLM, MLX, and llama.cpp. The WebGPU demo provides
+browser local inference.
 
 ## Why FastJev?
 
-The scoring primitive is simple. A causal model exposes next token logits.
-FastJev turns those logits into a complete application interface.
+FastJev turns Jev deployment into a standard Python workflow. The SDK loads the
+model, validates 2 to 16 options, performs scoring, and returns typed results
+with probabilities, token usage, timing, model revision, and prompt version.
 
-Each request carries its own criteria and option descriptions. Pinned base
-checkpoints score them through prompting. Torch and MLX read the declared
-option logits and return a typed value in one pass while generating zero output
-tokens.
+Resident Torch, batched vLLM, native MLX, llama.cpp GGUF, the CLI, and the
+optional System One compatible HTTP API share the same result model. Torch,
+MLX, and llama.cpp return results in one scoring pass with zero output tokens.
 
-Every call follows the same contract across 2 to 16 options. The result uses
-`Choice`, `Boolean`, or `Score` and includes a normalized distribution. Input
-validation and error behavior remain consistent across resident Torch, batched
-vLLM, native MLX, the CLI, and the optional HTTP API compatible with System
-One.
-
-Pinned model revisions, prompt hashes, predictions for each row, raw timings,
-and checksums make each run auditable alongside the code.
-
-[llama.cpp](https://github.com/ggml-org/llama.cpp) directly offers a compact
-path for a single binary prompt and raw logprobs. FastJev turns repeated
-decisions into a typed, portable, testable, and attributable application
-surface.
-
-## How it compares
-
-The table compares project scope. Each project's published performance belongs
-to its own workload.
-
-| Project | Core mechanism | Choose it when | FastJev focus |
-|---|---|---|---|
-| [Laya](https://github.com/NandhaKishorM/laya) | Small decision models with parallel option scoring | Serving with limited resources or multiple languages, especially when fine tuning matches the workflow | Applies standard open causal models to decisions defined at runtime, with pinned revisions and a 4,096 token default input limit |
-| [semantic-router](https://github.com/aurelio-labs/semantic-router) | Embedding similarity against route utterances | Routes and example utterances are stable and vector similarity is enough | Evaluates a supplied state against new criteria and option meanings on every request |
-| [Outlines](https://github.com/dottxt-ai/outlines) | Constrained autoregressive generation | You need arbitrary JSON, regex, grammar, or extraction schemas | Focuses on typed decisions and reads option scores in one scoring pass |
-| [llama.cpp](https://github.com/ggml-org/llama.cpp) | Local inference and token logprobs | You want maximum runtime control or a single classifier | Adds typed questions, prompt and slot validation, provenance, backends, HTTP compatibility, and frozen evaluations |
-
-Use a structured generation library for arbitrary extraction, an embedding
-router for a stable taxonomy, and a trained small decision model when its domain
-and latency profile match your deployment. Choose FastJev for `Choice`,
-`Boolean`, and `Score` decisions defined at runtime on open models in your
-infrastructure.
+Each result records the model revision and prompt version. Published
+evaluations add row data, raw timings, and checksums for reproducibility.
 
 ## Models you can run now
 
@@ -137,7 +92,7 @@ print(result.provenance)
 Remote models use an immutable Hugging Face revision containing 40 characters.
 Local model directories use a descriptive revision label for result provenance.
 
-Install `.[llama-cpp]` for local or Hugging Face-hosted GGUF files. The
+Install `.[llama-cpp]` to run GGUF files from disk or Hugging Face. The
 [Python SDK guide](docs/SDK.md) covers llama.cpp setup and provenance.
 
 ## Measured results
@@ -177,6 +132,18 @@ The two open model columns come from local frozen evaluations. The
 [results report](docs/RESULTS.md) provides the full data, perturbations, and
 claim boundaries.
 
+## How it compares
+
+These projects serve adjacent deployment needs. Their published performance
+belongs to their own workloads.
+
+| Project | Core mechanism | Choose it when | FastJev focus |
+|---|---|---|---|
+| [Laya](https://github.com/NandhaKishorM/laya) | Small decision models with parallel option scoring | Serving with limited resources or multiple languages, especially when fine tuning matches the workflow | Applies standard open causal models to decisions defined at runtime, with pinned revisions and a 4,096 token default input limit |
+| [semantic-router](https://github.com/aurelio-labs/semantic-router) | Embedding similarity against route utterances | Routes and example utterances are stable and vector similarity is enough | Evaluates a supplied state against new criteria and option meanings on every request |
+| [Outlines](https://github.com/dottxt-ai/outlines) | Constrained autoregressive generation | You need arbitrary JSON, regex, grammar, or extraction schemas | Focuses on typed decisions and reads option scores in one scoring pass |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) | Local inference and token logprobs | You want maximum runtime control or a single classifier | Uses llama.cpp as a backend and adds typed questions, validation, provenance, multiple runtimes, HTTP compatibility, and frozen evaluations |
+
 ## Backends and interfaces
 
 | Runtime | Install | Best for |
@@ -184,6 +151,7 @@ claim boundaries.
 | PyTorch/CUDA | `pip install -e '.[torch]'` | Default scoring from logits |
 | vLLM/CUDA | `pip install -e '.[vllm]'` | Batched resident services |
 | MLX/Apple Silicon | See the [MLX guide](docs/MLX.md) | Native macOS arm64 inference |
+| llama.cpp/GGUF | `pip install -e '.[llama-cpp]'` | GGUF files from disk or Hugging Face |
 | WebGPU/GGUF | Open the [browser demo](webgpu-demo/index.html) | Inference in the browser |
 
 Use `fastjev-score` for JSONL jobs. Install `.[api]` and run
@@ -215,12 +183,6 @@ Model weights stay on upstream hosts, and third party evaluation records stay
 with their original sources. Upstream models retain their licenses. Exact
 revisions are listed in [THIRD_PARTY.md](THIRD_PARTY.md).
 
-FastJev is an independently maintained fork of
-[TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf), formerly OpenJev. It
-preserves the original Git history and MIT license and follows an independent
-roadmap. FastJev, TheoLeeCJ/SemIf, TypeSafe, and Jev operate as independent
-projects. FastJev implements published interface patterns with open models.
-Jev controls its proprietary model, training, calibration, and performance
-claims.
+The [third party record](THIRD_PARTY.md) documents source and model provenance.
 
 Project code is released under the [MIT License](LICENSE).
