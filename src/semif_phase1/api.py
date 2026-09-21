@@ -7,6 +7,7 @@ import secrets
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import JSONResponse
 
+from . import __version__
 from .system_one import SystemOneService, SystemOneValidationError
 
 
@@ -14,7 +15,7 @@ def create_app(service: SystemOneService, api_key: str | None = None) -> FastAPI
     """Create an app around an already-loaded, single-model service."""
     app = FastAPI(
         title="fastjev System One API",
-        version="0.1.0",
+        version=__version__,
         description=(
             "A wire-compatible subset of TypeSafe's System One API backed by fastjev. "
             "It does not serve Jev and its probabilities are not calibrated as Jev probabilities."

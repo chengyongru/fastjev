@@ -17,7 +17,7 @@ fastjev 可以公开 TypeSafe 文档中 System One HTTP API 的 wire-compatible 
 在 fastjev 所在的同一隔离环境中安装 API extra：
 
 ```bash
-pip install -e '.[api,torch]'
+pip install 'fastjev[api,torch]'
 ```
 
 本地无认证服务保留默认 loopback 绑定：

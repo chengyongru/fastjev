@@ -8,6 +8,7 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+FIXTURE_VERSION = "9.8.7"
 spec = importlib.util.spec_from_file_location(
     "verify_distribution_metadata", ROOT / "scripts/verify_distribution_metadata.py"
 )
@@ -16,11 +17,13 @@ spec.loader.exec_module(metadata)
 
 
 def wheel_with_requirements(tmp_path, *requirements):
-    path = tmp_path / "fastjev-0.1.0-py3-none-any.whl"
-    fields = ["Metadata-Version: 2.4", "Name: fastjev", "Version: 0.1.0"]
+    path = tmp_path / f"fastjev-{FIXTURE_VERSION}-py3-none-any.whl"
+    fields = ["Metadata-Version: 2.4", "Name: fastjev", f"Version: {FIXTURE_VERSION}"]
     fields.extend(f"Requires-Dist: {requirement}" for requirement in requirements)
     with zipfile.ZipFile(path, "w") as archive:
-        archive.writestr("fastjev-0.1.0.dist-info/METADATA", "\n".join(fields) + "\n\n")
+        archive.writestr(
+            f"fastjev-{FIXTURE_VERSION}.dist-info/METADATA", "\n".join(fields) + "\n\n"
+        )
     return path
 
 

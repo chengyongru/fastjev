@@ -57,12 +57,10 @@ Qwen3.5-4B uses about 9 GB of disk for the source checkpoint and measured
 [RTX 5090 SDK smoke run](https://github.com/chengyongru/fastjev/pull/5).
 
 ```bash
-git clone https://github.com/chengyongru/fastjev.git
-cd fastjev
 python -m venv .venv
 . .venv/bin/activate
 export HF_HOME=/path/to/large-drive/huggingface
-pip install -e '.[torch]'
+pip install 'fastjev[torch]'
 ```
 
 The first call automatically downloads the pinned model revision from Hugging
@@ -92,8 +90,18 @@ print(result.provenance)
 Remote models use an immutable Hugging Face revision containing 40 characters.
 Local model directories use a descriptive revision label for result provenance.
 
-Install `.[llama-cpp]` to run GGUF files from disk or Hugging Face. The
+Install `fastjev[llama-cpp]` to run GGUF files from disk or Hugging Face. The
 [Python SDK guide](docs/SDK.md) covers llama.cpp setup and provenance.
+
+### Install the latest source
+
+Use an editable checkout to run the latest code from `main`.
+
+```bash
+git clone https://github.com/chengyongru/fastjev.git
+cd fastjev
+pip install -e '.[torch]'
+```
 
 ## Measured results
 
@@ -148,13 +156,13 @@ belongs to their own workloads.
 
 | Runtime | Install | Best for |
 |---|---|---|
-| PyTorch/CUDA | `pip install -e '.[torch]'` | Default scoring from logits |
-| vLLM/CUDA | `pip install -e '.[vllm]'` | Batched resident services |
+| PyTorch/CUDA | `pip install 'fastjev[torch]'` | Default scoring from logits |
+| vLLM/CUDA | `pip install 'fastjev[vllm]'` | Batched resident services |
 | MLX/Apple Silicon | See the [MLX guide](docs/MLX.md) | Native macOS arm64 inference |
-| llama.cpp/GGUF | `pip install -e '.[llama-cpp]'` | GGUF files from disk or Hugging Face |
+| llama.cpp/GGUF | `pip install 'fastjev[llama-cpp]'` | GGUF files from disk or Hugging Face |
 | WebGPU/GGUF | Open the [browser demo](webgpu-demo/index.html) | Inference in the browser |
 
-Use `fastjev-score` for JSONL jobs. Install `.[api]` and run
+Use `fastjev-score` for JSONL jobs. Install `fastjev[api,torch]` and run
 `fastjev-serve` for `POST /v1/systemone` and `GET /v1/models`. The
 [SDK guide](docs/SDK.md) covers batching and custom backends. The
 [HTTP guide](docs/SYSTEM_ONE_API.md) covers server setup, authentication, and
