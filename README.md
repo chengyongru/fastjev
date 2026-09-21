@@ -23,9 +23,9 @@ fastjev has two priorities, in this order:
 
 Faster inference is a project direction, not an unqualified claim that every fastjev path is faster or more accurate than upstream, Jev, or another serving stack. The measurements below define the hardware, models, workloads, and known semantic differences. Historical benchmark artifacts and media retain SemIf/OpenJev names where renaming would invalidate checksums or misrepresent recorded runs.
 
-Most agent decisions are small: *route this*, *retry that*, *does the evidence support X?* A chat model can answer them, but it spends time generating text that software immediately parses back into an `if` statement.
+Many decisions inside agent workflows are narrow: *route this*, *retry that*, *does the evidence support X?* A conventional generative path can answer them, but it emits text that the application must parse before branching.
 
-Jev is TypeSafe's closed service for runtime-defined semantic decisions. This project reproduces that **interface pattern** with open models; it does not reproduce Jev's undisclosed model or training.
+[Jev](https://typesafe.ai/) is TypeSafe's hosted System One Model for runtime-defined typed decisions. fastjev implements the documented **interface pattern** with open models; it does not reproduce Jev's undisclosed model, training, calibration, or performance.
 
 This baseline reads typed option probabilities directly from a model. No answer sentence, JSON repair, or decoding loop.
 
