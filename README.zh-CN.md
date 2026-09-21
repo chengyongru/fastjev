@@ -1,10 +1,10 @@
-# fastjev
+<h1 align="center">FastJev</h1>
 
 <div align="center">
 
 [English](README.md) | 简体中文
 
-<img src="assets/fastjev-cover.png" alt="fastjev 语义决策架构" width="100%">
+<img src="assets/fastjev-cover.webp" alt="FastJev 语义决策架构" width="100%">
 
 **面向 SDK 的快速、自托管开放模型语义决策工具包。**
 

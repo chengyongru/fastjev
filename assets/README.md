@@ -1,9 +1,10 @@
 # Visual assets
 
-`fastjev-cover.png` was supplied by the project maintainer for use as the shared
-cover image in the English and Simplified Chinese READMEs.
+`fastjev-cover.webp` is an optimized WebP derivative of the cover supplied by
+the project maintainer. It is shared by the English and Simplified Chinese
+READMEs.
 
-SHA-256: `0498bc701cec6380ff4f5f5dc99ce9304ccbb706334042dab7043294dab175c9`
+SHA-256: `face47c5e9346298d55cfa795c7be30efe78672d7815895010b5a88d53923139`
 
 `semif-hero.png` was generated for this project with the built-in image-generation tool. It depicts one unstructured input stream passing through a shared semantic core into many parallel typed decision branches. It contains no third-party media, logos, or text.
 

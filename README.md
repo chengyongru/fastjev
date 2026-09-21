@@ -1,10 +1,10 @@
-# fastjev
+<h1 align="center">FastJev</h1>
 
 <div align="center">
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-<img src="assets/fastjev-cover.png" alt="fastjev semantic decision architecture" width="100%">
+<img src="assets/fastjev-cover.webp" alt="FastJev semantic decision architecture" width="100%">
 
 **An SDK-first toolkit for fast, self-hosted semantic decisions with open models.**
 
