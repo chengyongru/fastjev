@@ -73,6 +73,22 @@ with FastJev(backend) as jev:
 
 一次 `decide_many` 会转换为一次批量 `LLM.generate` 调用。backend 渲染并验证与 Torch 路径相同的直接决策 prompt，只允许生成单 token 的答案槽位，并请求所有已声明槽位的 log probability。返回值是这些槽位的条件 next-token score，不需要解析生成文本。vLLM 会为每个问题生成一个受约束 token，因此每项结果记录一个 output token。
 
+### WSL 兼容性
+
+vLLM 0.29.0 的 V2 model runner 依赖 CUDA Unified Virtual Addressing（UVA），而 WSL 可能无法提供它。如果启动时报错 `UVA is not available`，请在 Python 导入 vLLM 前切换到 V1 runner：
+
+```bash
+export VLLM_USE_V2_MODEL_RUNNER=0
+```
+
+如果 FlashInfer sampling JIT 报告 CUDA compiler 与 toolkit headers 不兼容，请使用 vLLM 原生 sampler：
+
+```bash
+export VLLM_USE_FLASHINFER_SAMPLER=0
+```
+
+这些开关只选择 vLLM 内部实现，不会改变 fastjev backend 合约或决策语义。
+
 ## 类型化问题
 
 所有问题都会编译为同一种 backend-neutral categorical request：
