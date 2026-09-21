@@ -4,6 +4,8 @@
 
 [English](README.md) | 简体中文
 
+<img src="assets/fastjev-cover.png" alt="fastjev 语义决策架构" width="100%">
+
 **面向 SDK 的快速、自托管开放模型语义决策工具包。**
 
 *独立维护的 [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf) 分支。*

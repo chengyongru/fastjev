@@ -1,5 +1,10 @@
 # Visual assets
 
+`fastjev-cover.png` was supplied by the project maintainer for use as the shared
+cover image in the English and Simplified Chinese READMEs.
+
+SHA-256: `0498bc701cec6380ff4f5f5dc99ce9304ccbb706334042dab7043294dab175c9`
+
 `semif-hero.png` was generated for this project with the built-in image-generation tool. It depicts one unstructured input stream passing through a shared semantic core into many parallel typed decision branches. It contains no third-party media, logos, or text.
 
 Prompt summary: a premium, minimal, wide technical illustration on a near-black grid; dense unstructured information entering from the left; one luminous semantic core; twenty-one crisp cyan/lime/amber decision branches and probability nodes on the right; no people, robots, brains, brands, UI screenshots, pseudo-text, or watermark.
