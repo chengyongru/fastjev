@@ -8,52 +8,39 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-<img src="assets/fastjev-cover.webp" alt="FastJev semantic decision architecture" width="100%">
+<img src="assets/fastjev-cover.webp" alt="FastJev self-hosted semantic decision SDK" width="100%">
 
-**An SDK-first toolkit for fast, self-hosted semantic decisions with open models.**
-
-*An independently maintained fork of [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf).*
+**Fast, self-hosted semantic decisions with open models.**
 
 </div>
 
-> **Fork lineage and independence.** fastjev preserves the Git history and MIT license of [SemIf](https://github.com/TheoLeeCJ/SemIf), formerly OpenJev, while following an independent roadmap. fastjev is not affiliated with or endorsed by TheoLeeCJ, TypeSafe, or Jev. Jev, TypeSafe, and other names and marks remain the property of their respective owners.
+FastJev is an open-source Python SDK for self-hosted semantic routing, LLM
+classification, and structured AI decisions. Give it an unstructured state, a
+runtime-defined question, and typed options; it returns option probabilities
+without generating an answer sentence or parsing JSON.
 
-## Why fastjev
+Use it for routing, retry policies, evidence checks, and other narrow decisions
+inside AI agents and applications.
 
-fastjev has two priorities, in this order:
+## Why FastJev
 
-- **SDK-first integration:** the public Python package is the primary interface for applications. CLI commands remain available for reproducibility, operations, and debugging.
-- **Faster inference:** generation-free scoring, resident model serving, measured cache reuse, and backend profiling are first-class priorities. Performance changes must include reproducible evidence and must not trade away decision quality silently.
+- **Generation-free:** reads option logits directly, with no decoding loop or
+  generated output to repair.
+- **Typed Python API:** supports `Choice`, `Boolean`, and `Score` results with
+  stable option IDs and provenance metadata.
+- **Self-hosted open models:** runs through PyTorch/CUDA, vLLM, or MLX on Apple
+  Silicon.
+- **Built for repeated decisions:** keeps the model resident and supports batch
+  scoring and shared-state prefix reuse.
+- **Auditable:** pins model revisions and publishes prompts, row-level outputs,
+  benchmark runners, and checksums.
+- **API-compatible:** optionally serves the documented System One request shape
+  over HTTP.
 
-Faster inference is a project direction, not an unqualified claim that every fastjev path is faster or more accurate than upstream, Jev, or another serving stack. The measurements below define the hardware, models, workloads, and known semantic differences. Historical benchmark artifacts and media retain SemIf/OpenJev names where renaming would invalidate checksums or misrepresent recorded runs.
+## Quick start
 
-Many decisions inside agent workflows are narrow: *route this*, *retry that*, *does the evidence support X?* A conventional generative path can answer them, but it emits text that the application must parse before branching.
-
-[Jev](https://typesafe.ai/) is TypeSafe's hosted System One Model for runtime-defined typed decisions. fastjev implements the documented **interface pattern** with open models; it does not reproduce Jev's undisclosed model, training, calibration, or performance.
-
-This baseline reads typed option probabilities directly from a model. No answer sentence, JSON repair, or decoding loop.
-
-### Current focus
-
-- Serve the documented System One wire shape from a resident open model.
-- Reduce decision latency without silently changing direct-scoring semantics.
-- Keep model revisions, benchmark inputs, row-level outputs, and limitations auditable.
-
-## SDK quick start
-
-**Apple Silicon:** use the native [MLX backend](docs/MLX.md) for direct scoring,
-serial prefix reuse, and parallel shared-state decisions on macOS arm64.
-Until MLX-LM publishes the required normalization fix, install the validated
-source revision explicitly alongside the MLX extra:
-
-```bash
-pip install -e '.[mlx]' \
-  'mlx-lm @ git+https://github.com/ml-explore/mlx-lm.git@a63e24c389382619eb6d9af656e3b46024be217a'
-```
-
-Then add `--backend mlx` to the scorer command.
-
-Python 3.10+, CUDA, and a GPU that can hold a 4B BF16 model:
+The default backend requires Python 3.10+, CUDA, and one GPU that can hold a 4B
+BF16 model:
 
 ```bash
 python -m venv .venv
@@ -62,33 +49,54 @@ export HF_HOME=/path/to/large-drive/huggingface
 pip install -e '.[torch]'
 ```
 
-Keep the backend resident and score runtime-defined decisions through the typed SDK:
+The first call downloads the pinned model revision from Hugging Face and caches
+it under `HF_HOME`; no separate model download step is required.
 
 ```python
 from fastjev import Choice, FastJev, Option
 
-jev = FastJev.from_pretrained(
+with FastJev.from_pretrained(
     "Qwen/Qwen3.5-4B",
     revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
-)
-result = jev.decide(
-    state="Customer cannot access an account after a password reset.",
-    question=Choice("Which queue should handle this request?", [
-        Option("access", "Account access support."),
-        Option("billing", "Billing support."),
-    ]),
-)
-print(result.value, result.probabilities)
-jev.close()
+) as jev:
+    result = jev.decide(
+        state="Customer cannot access an account after a password reset.",
+        question=Choice("Which queue should handle this request?", [
+            Option("access", "Account access support."),
+            Option("billing", "Billing support."),
+        ]),
+    )
+
+print(result.value)
+print(result.probabilities)
 ```
 
-`FastJev` depends only on the `ScoringBackend` protocol. The built-in Torch, MLX, llama.cpp GGUF, and optional vLLM implementations are adapters, so changing the runtime does not change `Choice`, `Boolean`, `Score`, or result types. Install `.[vllm]` for batched CUDA inference through vLLM, or `.[llama-cpp]` for local or Hugging Face-hosted GGUF files. See the [Python SDK guide](docs/SDK.md) for setup, batching, result semantics, backend contracts, and System One adaptation.
+Remote models require an immutable 40-character Hugging Face revision. Local
+model directories are also supported and require a nonempty revision label for
+result provenance.
 
-Install `.[api]` and import `create_app` from `fastjev.http` only when an HTTP boundary is needed.
+Install `.[llama-cpp]` for local or Hugging Face-hosted GGUF files. The
+[Python SDK guide](docs/SDK.md) covers llama.cpp setup and provenance.
 
-## CLI and service wrappers
+## Backends
 
-Run the owned examples from a shell:
+| Runtime | Install | Best for |
+|---|---|---|
+| PyTorch/CUDA | `pip install -e '.[torch]'` | Default direct-logit scoring |
+| vLLM/CUDA | `pip install -e '.[vllm]'` | Batched resident inference |
+| MLX/Apple Silicon | See the [MLX guide](docs/MLX.md) | Native macOS arm64 inference |
+
+All backends implement the same `ScoringBackend` protocol, so application code
+can keep the same typed decisions and result objects when the runtime changes.
+See the [Python SDK guide](docs/SDK.md) for batching, backend injection, result
+semantics, and lifecycle management.
+
+For local browser inference, the [WebGPU demo](webgpu-demo/index.html) downloads
+a pinned GGUF model on demand and stores it in browser-managed cache.
+
+## CLI and HTTP API
+
+Score JSONL from the command line:
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 fastjev-score \
@@ -99,124 +107,54 @@ CUDA_VISIBLE_DEVICES=0 fastjev-score \
   --output results.jsonl
 ```
 
-Each result contains typed option scores, timing, the exact model revision, and a prompt hash.
+Use `--mode shared` when every input row has the same state and its criteria can
+reuse one prefix. For a resident service, install `.[api]` and run
+`fastjev-serve`; the [HTTP API guide](docs/SYSTEM_ONE_API.md) documents
+`POST /v1/systemone`, authentication, and compatibility boundaries.
 
-If every row has the same exact state, switch to `--mode shared` to prefill it once and evaluate the criteria in parallel.
+## Measured performance
 
-### System One-compatible HTTP API
+On one RTX 3090, the frozen Qwen3.5-4B benchmark evaluated the same state and 21
+binary criteria:
 
-Install the `api` extra and run `fastjev-serve` to keep one model resident behind `POST /v1/systemone` and `GET /v1/models`. The adapter accepts TypeSafe's documented `state`, `model`, and `questions` wire shape, including `noul`, `choice`, and `score` questions. It does not serve Jev or reproduce Jev calibration; requests must name the configured fastjev model.
-
-See [System One-compatible API](docs/SYSTEM_ONE_API.md) for the server command, request example, authentication, confidence definition, and compatibility limits.
-
-## How it works
-
-```mermaid
-flowchart LR
-    S[Unstructured state] --> M[4B model]
-    C[Runtime criteria] --> M
-    O[Typed options] --> M
-    M -- native option logits --> P[Probabilities]
-```
-
-- **Runtime-defined:** criteria and option descriptions arrive with the request.
-- **Decision-native:** one forward pass reads declared option logits; no answer token is sampled.
-- **Shared-state aware:** one long state can be prefetched once, then branched across many criteria.
-- **Auditable:** the owned fixture, exact runners, row-level outputs, revisions, prompts, and known failures are committed.
-
-## Speed
-
-### Decisions versus a compact generated array
-
-Same frozen Qwen3.5-4B, same owned state, same 21 binary criteria, one RTX 3090:
-
-| Output path | Time | Output tokens | Result |
-|---|---:|---:|---|
-| Direct typed logits, median of 3 | **1.023 s** | **0** | 21 probability pairs |
-| Autoregressive JSON array, median of 3 | 5.332 s | 111 | Valid ordered 21-value array |
-
-The compact generative baseline emits only ordered `"yes"`/`"no"` values—no keys, confidence objects, or explanations. Its median first-token time was 0.489 s, but completing the array took **5.21×** as long as direct readout. All three arrays were valid and identical. Their choices agreed with direct argmax on 18/21 criteria, so this is a systems comparison rather than a claim that the two readouts are semantically equivalent. [Exact prompt, outputs, token timeline, and runs](results/raw/decision-vs-compact-array.json) are committed.
-
-### Reusing a state across 21 decisions
-
-On an owned 37-state × 21-criterion workload:
-
-| Execution path | Decisions/s | 777 decisions |
+| Output path | Median time | Output tokens |
 |---|---:|---:|
-| Fresh direct scoring | 2.33 | 333.1 s |
-| Serial prefix reuse | 10.75 | 72.3 s |
-| Parallel suffixes | **20.03** | **38.8 s** |
-| Native reranker | 1.86 | 417.3 s |
+| Direct typed logits | **1.023 s** | **0** |
+| Autoregressive JSON array | 5.332 s | 111 |
 
-The owned [37×21 fixture](benchmarks/data/shape777.jsonl), [direct/reuse runner](benchmarks/shape777.py), [reranker runner](benchmarks/shape777_reranker.py), [raw timings](results/raw/shape777-direct.json), and [row-level predictions](results/raw/shape777-direct.predictions.jsonl) are included. The fast reuse paths are experimental: BF16 execution changed 5–6 of 777 argmaxes relative to fresh scoring.
-
-## Quality
-
-### Browser model ladder
-
-| System | Browser artifact | Download | Authored balanced accuracy | Perturbation balanced accuracy | TypeSafe subset agreement |
-|---|---|---:|---:|---:|---:|
-| Qwen3-0.6B | Q8_0 | 639 MB | 0.440 | 0.528 | 0.407 |
-| MiniCPM5-2B | Q4_K_M | 1.56 GB | 0.686 | 0.693 | 0.637 |
-| **Qwen3.5-4B** | Q4_K_M | 3.01 GB | **0.813** | **0.766** | 0.845 |
-| Published Jev | Closed hosted service | — | — | — | **0.883** |
-
-*Native BF16 scores. Browser builds use quantized GGUF. Jev is TypeSafe's published result on the same 102-row subset.*
-
-### General decision baseline
-
-| Frozen workload | Rows | Direct logits (4B) | Native reranker (4B) | Published Jev |
-|---|---:|---:|---:|---:|
-| Authored decisions, balanced accuracy | 144 | **0.813** | 0.625 | — |
-| WANLI, balanced accuracy | 256 | **0.637** | 0.522 | — |
-| TypeSafe selected subset, modal agreement | 102 across 20 cases | **0.845** | 0.560 | 0.883 |
-| Every judgment grid, accuracy | 36 | **0.806** | 0.694 | — |
-| Every action firewall, composed accuracy | 10 actions | 0.700 | 0.700 | — |
-| Every code retrieval, Recall@1 | 6 queries | 1.000 | 1.000 | — |
-| Every company knowledge, Recall@1 | 7 queries | 0.929 | 0.929 | — |
-
-The reranker remained strong at retrieval ranking, but direct logits were the better general-decision baseline.
-
-The Jev number is read from TypeSafe's published records; we did not run a live Jev endpoint. The comparison covers the 102 rows that could be aligned from public artifacts, not TypeSafe's reported 711-row aggregate.
-
-## Input
-
-```json
-{
-  "id": "route-1",
-  "state": "Customer cannot access an account after a password reset.",
-  "question": "Which queue should handle this request?",
-  "options": [
-    {"id": "access", "description": "Account access support."},
-    {"id": "billing", "description": "Billing support."}
-  ]
-}
-```
-
-Returned probabilities are conditional on the supplied options. Calibrate and validate them on the workload where they will make decisions.
-`state` may also be a nonempty JSON object or array. Direct modes preserve it as structured JSON; reranker mode renders it as document text.
+The generated baseline emitted only an ordered array of `"yes"`/`"no"` values.
+It took 5.21× as long to complete, while its choices agreed with direct argmax on
+18 of 21 criteria. This measures output-path cost; it does not claim that the two
+readouts are semantically equivalent. See the [raw run](results/raw/decision-vs-compact-array.json)
+and the full [results and limitations](docs/RESULTS.md).
 
 ## Documentation
 
-- [Python SDK](docs/SDK.md) — typed decisions, backend protocol, batching, and result semantics
-- [Results](docs/RESULTS.md) — quality, speed, perturbations, and claim boundaries
+- [Python SDK](docs/SDK.md) — typed decisions, batching, and backend contracts
+- [System One-compatible API](docs/SYSTEM_ONE_API.md) — server setup and wire format
+- [MLX backend](docs/MLX.md) — Apple Silicon setup and cache behavior
+- [Results](docs/RESULTS.md) — speed, quality, perturbations, and claim boundaries
 - [Method](docs/METHOD.md) — frozen prompts, metrics, and timing scope
-- [Reproduce](docs/REPRODUCE.md) — exact environment, pinned commands, perturbations, and verification
-- [System One-compatible API](docs/SYSTEM_ONE_API.md) — HTTP server, wire format, and compatibility boundaries
-- [Interactive replay](demo/index.html)
-- [Browser-only WebGPU demo](webgpu-demo/index.html) — no waitlist; use it today
-- [Machine-readable summary](results/phase1-summary.json)
-- [Benchmark bundle](benchmarks/README.md) — fixtures, runners, selection IDs, and reproduction commands
-- [Raw results and checksums](results/raw/)
-- [Third-party sources](THIRD_PARTY.md)
+- [Reproduce](docs/REPRODUCE.md) — pinned environments and verification commands
+- [Benchmark bundle](benchmarks/README.md) — fixtures, runners, and source selection
+- [Interactive replay](demo/index.html) and [browser-only WebGPU demo](webgpu-demo/index.html)
 
-## Evaluation sources
+## Limitations and provenance
 
-- [TypeSafe public evaluations](https://evals.typesafe.ai/) — public comparison cases used for selected-subset agreement
-- [Every parallel judgment lab](https://typesafe-parallel-judgment-lab.every-4573.chatgpt.site/) and its [downloadable experiment data](https://typesafe-parallel-judgment-lab.every-4573.chatgpt.site/downloads/experiments.json)
-- [WANLI](https://huggingface.co/datasets/alisawuffles/WANLI) — external natural-language inference check
-- [Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B), [MiniCPM5-2B](https://huggingface.co/openbmb/MiniCPM5-2B), [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B), and [Qwen3-Reranker-4B](https://huggingface.co/Qwen/Qwen3-Reranker-4B) — frozen baseline models
+FastJev returns probabilities conditional on the supplied options. They are not
+calibrated confidence estimates; validate and calibrate them on the workload
+where they will make decisions. Fast prefix-reuse paths can also change BF16
+argmax results and remain experimental.
 
-Model weights and third-party source records are not included. Upstream models retain their licenses. Project code is released under the [MIT License](LICENSE).
+Model weights and third-party evaluation records are not distributed in this
+repository. Upstream models retain their own licenses and exact revisions are
+listed in [THIRD_PARTY.md](THIRD_PARTY.md).
 
-The installed distribution and public Python package are both named `fastjev`; `fastjev-score` and `fastjev-serve` are secondary wrappers. The internal `semif_phase1` package and the `semif-score`/`semif-serve` command aliases are retained for compatibility with inherited scripts and artifacts.
+FastJev is an independently maintained fork of
+[TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf), formerly OpenJev. It
+preserves the original Git history and MIT license but follows an independent
+roadmap. FastJev is not affiliated with or endorsed by TheoLeeCJ, TypeSafe, or
+Jev, and it does not reproduce Jev's undisclosed model, training, calibration,
+or performance.
+
+Project code is released under the [MIT License](LICENSE).
