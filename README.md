@@ -10,7 +10,7 @@
 
 <img src="assets/fastjev-cover.webp" alt="FastJev self-hosted semantic decision SDK" width="100%">
 
-**Turn unstructured state into typed decisions—without generating an answer.**
+**Turn unstructured state into typed decisions.**
 
 </div>
 
@@ -20,9 +20,9 @@ the risk?* It evaluates runtime-defined `Choice`, `Boolean`, and `Score`
 questions with self-hosted open models and returns stable values plus the option
 distribution.
 
-This is semantic decision inference, not chat or arbitrary data extraction. The
-criteria and options can change on every request, so no task-specific training
-set, fixed label head, or route-utterance library is required.
+FastJev specializes in semantic decision inference. Each request supplies its
+own criteria and options; pinned base checkpoints handle new tasks through
+prompting.
 
 ## What can you build?
 
@@ -35,20 +35,18 @@ set, fixed label head, or route-utterance library is required.
 | Model/tool routing | “Which capability is needed next?” | `Choice` |
 
 Each result includes the selected value, all declared option probabilities,
-token usage, timing, model revision, prompt version, and an explicit
-uncalibrated-probability marker.
+token usage, timing, model revision, prompt version, and `calibrated=False`.
 
 ## Why FastJev?
 
-The scoring primitive is intentionally simple: a causal model can expose
-next-token logits. FastJev provides the application layer that a one-off
-logprob call does not:
+The scoring primitive is simple: a causal model exposes next-token logits.
+FastJev packages that primitive as an application layer:
 
-- **Zero-training decisions:** submit new criteria and option descriptions at
-  runtime instead of collecting route examples or fine-tuning a classifier.
-- **No JSON answer path:** the direct Torch and MLX backends read declared
-  option logits and produce zero answer tokens—no schema repair, retry, or
-  parsing loop.
+- **Runtime-defined decisions:** submit new criteria and option descriptions at
+  runtime; pinned base checkpoints score them through prompting.
+- **Direct typed output:** the Torch and MLX backends read declared option
+  logits, consume zero output tokens, and return typed values in one scoring
+  pass.
 - **A stable typed contract:** input validation, 2–16 option slots, normalized
   distributions, `Choice`/`Boolean`/`Score` values, and consistent errors.
 - **Production boundaries:** resident Torch, batched vLLM, native MLX, a CLI,
@@ -56,27 +54,27 @@ logprob call does not:
 - **Auditable runs:** immutable model revisions, prompt hashes, row-level
   predictions, raw timings, and checksums are kept with the code.
 
-If one binary prompt and raw logprobs are all you need, calling
-[llama.cpp](https://github.com/ggml-org/llama.cpp) directly is simpler. FastJev
-is useful when those decisions become an application surface that must stay
-typed, portable, testable, and attributable.
+[llama.cpp](https://github.com/ggml-org/llama.cpp) directly offers a compact
+path for a single binary prompt and raw logprobs. FastJev turns repeated
+decisions into a typed, portable, testable, and attributable application
+surface.
 
 ## How it compares
 
-These projects solve adjacent problems; this is a scope comparison, not a
-cross-project speed benchmark.
+The table compares project scope. Each project's published performance belongs
+to its own workload.
 
-| Project | Core mechanism | Choose it when | What FastJev does differently |
+| Project | Core mechanism | Choose it when | FastJev focus |
 |---|---|---|---|
-| [Laya](https://github.com/NandhaKishorM/laya) | Small, specialized non-autoregressive decision models | Low-resource or multilingual serving, especially when you can fine-tune for the workflow | Uses standard open causal models for zero-training, runtime-defined decisions and a 4,096-token default input limit |
+| [Laya](https://github.com/NandhaKishorM/laya) | Small decision models with parallel option scoring | Low-resource or multilingual serving, especially when you can fine-tune for the workflow | Applies standard open causal models to runtime-defined decisions, with pinned revisions and a 4,096-token default input limit |
 | [semantic-router](https://github.com/aurelio-labs/semantic-router) | Embedding similarity against route utterances | Routes and example utterances are stable and vector similarity is enough | Evaluates a supplied state against new criteria and option meanings on every request |
-| [Outlines](https://github.com/dottxt-ai/outlines) | Constrained autoregressive generation | You need arbitrary JSON, regex, grammar, or extraction schemas | Covers the narrower decision case and reads option scores without generating the full object |
+| [Outlines](https://github.com/dottxt-ai/outlines) | Constrained autoregressive generation | You need arbitrary JSON, regex, grammar, or extraction schemas | Focuses on typed decisions and reads option scores in one scoring pass |
 | [llama.cpp](https://github.com/ggml-org/llama.cpp) | Low-level local inference and token logprobs | You want maximum runtime control or a one-off classifier | Adds typed questions, prompt/slot validation, provenance, backends, HTTP compatibility, and frozen evaluations |
 
-FastJev is not the best fit for every workload. Use a structured-generation
-library for arbitrary extraction, an embedding router for a stable taxonomy, or
-a trained small decision model when its domain and latency profile match your
-deployment.
+Use a structured-generation library for arbitrary extraction, an embedding
+router for a stable taxonomy, and a trained small decision model when its domain
+and latency profile match your deployment. Choose FastJev for runtime-defined
+`Choice`, `Boolean`, and `Score` decisions on self-hosted open models.
 
 ## Models you can run now
 
@@ -89,9 +87,9 @@ checkpoints. Put any listed model ID and revision into the quick start below:
 | [MiniCPM5-2B](https://huggingface.co/openbmb/MiniCPM5-2B) | `12a3808a956f869c767195e9266b59c4d21d92e2` | Size/quality balance | 0.686 | Q4_K_M, 1.56 GB |
 | **[Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B)** | `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` | **Recommended; best measured quality** | **0.813** | Q4_K_M, 3.01 GB |
 
-The quality numbers are from native BF16 checkpoints, not the quantized browser
-artifacts. Exact rows, revisions, and the separate browser smoke results are in
-the [model-ladder report](results/raw/browser-model-ladder.json).
+The table reports native BF16 checkpoint quality. Browser artifacts use
+separate quantized formats; their smoke results, exact rows, and revisions are
+in the [model-ladder report](results/raw/browser-model-ladder.json).
 
 ## Quick start
 
@@ -109,8 +107,8 @@ export HF_HOME=/path/to/large-drive/huggingface
 pip install -e '.[torch]'
 ```
 
-The first call downloads the pinned model revision from Hugging Face and caches
-it under `HF_HOME`; no separate model download step is required.
+The first call automatically downloads the pinned model revision from Hugging
+Face and caches it under `HF_HOME`.
 
 ```python
 from fastjev import Choice, FastJev, Option
@@ -133,9 +131,8 @@ print(result.probabilities)
 print(result.provenance)
 ```
 
-Remote models require an immutable 40-character Hugging Face revision. Local
-model directories are also supported and require a nonempty revision label for
-result provenance.
+Remote models use an immutable 40-character Hugging Face revision. Local model
+directories use a descriptive revision label for result provenance.
 
 Install `.[llama-cpp]` for local or Hugging Face-hosted GGUF files. The
 [Python SDK guide](docs/SDK.md) covers llama.cpp setup and provenance.
@@ -158,10 +155,10 @@ On this RTX 5090 / WSL workload, vLLM delivered 1.96× Torch throughput and
 breaks even after roughly 383 three-decision batches when the process stays
 resident. Both backends made the same three selections.
 
-This is a historical integration measurement recorded in
-[PR #7](https://github.com/chengyongru/fastjev/pull/7), not part of the
-repository's reproducible benchmark bundle: the PR records the exact environment
-and medians, but the seven individual timing samples were not committed.
+[PR #7](https://github.com/chengyongru/fastjev/pull/7) records this historical
+integration measurement, including the exact environment and aggregate medians.
+The repository's reproducible benchmark bundle covers the separately committed
+row-level experiments.
 
 ### Decision quality
 
@@ -172,7 +169,8 @@ and medians, but the seven individual timing samples were not committed.
 | TypeSafe public subset, 102 rows / 20 cases | **0.845** | 0.560 | 0.883 |
 
 The first two rows report balanced accuracy; the third reports equal-case modal
-agreement. Jev was read from public records, not a live endpoint. See the full
+agreement. The Jev column reproduces public records; the two open-model columns
+come from local frozen evaluations. See the full
 [results, perturbations, and claim boundaries](docs/RESULTS.md).
 
 ## Backends and interfaces
@@ -182,7 +180,7 @@ agreement. Jev was read from public records, not a live endpoint. See the full
 | PyTorch/CUDA | `pip install -e '.[torch]'` | Default direct-logit scoring |
 | vLLM/CUDA | `pip install -e '.[vllm]'` | Batched resident services |
 | MLX/Apple Silicon | See the [MLX guide](docs/MLX.md) | Native macOS arm64 inference |
-| WebGPU/GGUF | Open the [browser demo](webgpu-demo/index.html) | Local inference without Python |
+| WebGPU/GGUF | Open the [browser demo](webgpu-demo/index.html) | Browser-local inference |
 
 Use `fastjev-score` for JSONL jobs. Install `.[api]` and run
 `fastjev-serve` for `POST /v1/systemone` and `GET /v1/models`. The
@@ -198,22 +196,22 @@ compatibility boundaries.
 - [Benchmark bundle](benchmarks/README.md) — fixtures, runners, and source selection
 - [Interactive replay](demo/index.html) and [browser-only WebGPU demo](webgpu-demo/index.html)
 
-## Limits and provenance
+## Boundaries and provenance
 
-FastJev's option probabilities are conditional on the supplied choices. They
-are not calibrated confidence estimates; validate and calibrate them on the
-deployment workload before using thresholds for consequential automation. The
-experimental shared-prefix modes can change close BF16 argmax results.
+FastJev returns choice-conditional probabilities with `calibrated=False`.
+Deployment validation and calibration establish thresholds for consequential
+automation. The experimental shared-prefix modes can change close BF16 argmax
+results.
 
-Model weights and third-party evaluation records are not distributed here.
-Upstream models retain their licenses; exact revisions are listed in
-[THIRD_PARTY.md](THIRD_PARTY.md).
+Model weights stay on upstream hosts, and third-party evaluation records stay
+with their original sources. Upstream models retain their licenses; exact
+revisions are listed in [THIRD_PARTY.md](THIRD_PARTY.md).
 
 FastJev is an independently maintained fork of
 [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf), formerly OpenJev. It
-preserves the original Git history and MIT license but follows an independent
-roadmap. FastJev is not affiliated with or endorsed by TheoLeeCJ, TypeSafe, or
-Jev, and it does not reproduce Jev's undisclosed model, training, calibration,
-or performance.
+preserves the original Git history and MIT license and follows an independent
+roadmap. FastJev, TheoLeeCJ/SemIf, TypeSafe, and Jev operate as independent
+projects. FastJev implements published interface patterns with open models; Jev
+controls its proprietary model, training, calibration, and performance claims.
 
 Project code is released under the [MIT License](LICENSE).

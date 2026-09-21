@@ -10,13 +10,13 @@
 
 <img src="assets/fastjev-cover.webp" alt="FastJev 自托管语义决策 SDK" width="100%">
 
-**把非结构化状态直接变成类型化决策，无需生成回答。**
+**把非结构化状态直接变成类型化决策。**
 
 </div>
 
 FastJev 是处理 AI 系统中“小决策”的开源 Python SDK：*应该分到哪个队列？是否允许执行这个动作？现有证据是否充分？风险有多高？* 它使用自托管开放模型评估运行时定义的 `Choice`、`Boolean` 和 `Score` 问题，返回稳定值与完整选项分布。
 
-这是语义决策推理，不是聊天框架，也不是任意数据抽取工具。每次请求都可以使用新的标准和选项，无需为具体任务准备训练集、固定标签分类头或路由样例库。
+FastJev 专注语义决策推理。每次请求都可以携带新的标准和选项，固定的基础 checkpoint 通过 prompting 处理新任务。
 
 ## 可以用它做什么？
 
@@ -24,37 +24,36 @@ FastJev 是处理 AI 系统中“小决策”的开源 Python SDK：*应该分�
 |---|---|---|
 | Agent 安全门 | “这个 shell 命令会破坏持久数据吗？” | `Boolean` |
 | 客服或邮件分流 | “哪个团队应该处理这个请求？” | `Choice` |
-| 证据检查 | “记录支持、反驳还是没有提及这项主张？” | `Choice` |
+| 证据检查 | “记录与这项主张的关系是什么？” | `Choice` |
 | 风险与优先级 | “这项事件有多严重？” | `Score` |
 | 模型或工具路由 | “下一步需要哪项能力？” | `Choice` |
 
-每项结果都包含选中值、全部声明选项的概率、token 用量、耗时、模型 revision、prompt 版本，以及明确的“概率未校准”标记。
+每项结果都包含选中值、全部声明选项的概率、token 用量、耗时、模型 revision、prompt 版本和 `calibrated=False`。
 
 ## 为什么选择 FastJev？
 
-评分原理并不神秘：因果语言模型可以暴露 next-token logits。FastJev 提供的是一次性 logprob 调用不具备的应用层：
+评分原理很直接：因果语言模型可以暴露 next-token logits。FastJev 把这项能力封装成完整应用层：
 
-- **无需训练：** 运行时直接提交新的标准和选项说明，不必收集路由样例或微调分类器。
-- **不走 JSON 回答路径：** Torch 和 MLX 直接读取声明选项的 logits，输出 token 为零，不需要 schema 修复、重试或解析循环。
+- **运行时定义决策：** 每次请求直接提交新的标准和选项说明，固定的基础 checkpoint 通过 prompting 评分。
+- **直接返回类型化结果：** Torch 和 MLX 读取声明选项的 logits，输出 token 数量为 0，并在一次评分中返回类型化值。
 - **稳定的类型协议：** 输入验证、2–16 个选项槽位、归一化分布、`Choice`/`Boolean`/`Score` 结果和一致的错误边界。
 - **完整的部署边界：** 常驻 Torch、批量 vLLM、原生 MLX、CLI 和可选的 System One 兼容 HTTP API 使用同一结果模型。
 - **运行可审计：** 固定模型 revision，并保留 prompt hash、逐行预测、原始计时和校验和。
 
-如果只需要一个二元 prompt 和原始 logprobs，直接调用
-[llama.cpp](https://github.com/ggml-org/llama.cpp) 更简单。当这些判断成为必须保持类型稳定、可迁移、可测试、可追溯的应用接口时，FastJev 才能体现价值。
+[llama.cpp](https://github.com/ggml-org/llama.cpp) 为单个二元 prompt 和原始 logprobs 提供精简路径。FastJev 把重复出现的判断封装成类型稳定、可迁移、可测试、可追溯的应用接口。
 
 ## 与相邻项目的区别
 
-这些项目解决的是相邻问题。下表比较能力边界，不是跨项目速度 benchmark。
+下表比较各项目的能力范围。每个项目发布的性能数据对应各自的工作负载。
 
 | 项目 | 核心机制 | 适合选择它的场景 | FastJev 的区别 |
 |---|---|---|---|
-| [Laya](https://github.com/NandhaKishorM/laya) | 小型、专用的非自回归决策模型 | 低资源或多语言部署，尤其是愿意按工作负载微调时 | 使用标准开放因果模型，无需训练即可处理运行时决策，默认输入上限为 4,096 token |
+| [Laya](https://github.com/NandhaKishorM/laya) | 小型专用决策模型，并行计算选项得分 | 低资源或多语言部署，尤其是愿意按工作负载微调时 | 使用标准开放因果模型处理运行时定义的决策，并提供固定 revision 和 4,096 token 默认输入上限 |
 | [semantic-router](https://github.com/aurelio-labs/semantic-router) | 路由样例的 embedding 相似度 | 路由与样例稳定，向量相似度足够解决问题时 | 每次请求都根据完整状态、新标准和选项含义作出判断 |
-| [Outlines](https://github.com/dottxt-ai/outlines) | 受约束的自回归生成 | 需要任意 JSON、正则、grammar 或抽取 schema 时 | 专注较窄的决策场景，无需生成完整对象即可读取选项分数 |
+| [Outlines](https://github.com/dottxt-ai/outlines) | 受约束的自回归生成 | 需要任意 JSON、正则、grammar 或抽取 schema 时 | 专注类型化决策，在一次评分中读取选项分数 |
 | [llama.cpp](https://github.com/ggml-org/llama.cpp) | 底层本地推理与 token logprobs | 需要完全控制 runtime 或只做一次性分类器时 | 增加类型化问题、prompt/槽位验证、来源记录、多后端、HTTP 兼容和冻结评估 |
 
-FastJev 并不适合所有工作负载：任意信息抽取应选择结构化生成工具；固定路由体系可选择 embedding router；如果已有训练数据且小型决策模型满足领域与延迟要求，就应使用相应的专用模型。
+任意信息抽取适合结构化生成工具，固定路由体系适合 embedding router，领域匹配且具备训练数据的场景适合小型专用决策模型。运行时定义的 `Choice`、`Boolean` 和 `Score` 决策适合 FastJev。
 
 ## 可以直接运行的模型
 
@@ -66,7 +65,7 @@ FastJev 并不适合所有工作负载：任意信息抽取应选择结构化生
 | [MiniCPM5-2B](https://huggingface.co/openbmb/MiniCPM5-2B) | `12a3808a956f869c767195e9266b59c4d21d92e2` | 体积与质量平衡 | 0.686 | Q4_K_M，1.56 GB |
 | **[Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B)** | `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` | **推荐；实测质量最佳** | **0.813** | Q4_K_M，3.01 GB |
 
-质量数值来自原生 BF16 checkpoint，不代表浏览器量化模型。精确预测行、revision 和单独的浏览器冒烟结果见[模型梯度原始报告](results/raw/browser-model-ladder.json)。
+表格报告原生 BF16 checkpoint 的质量。浏览器模型采用独立的量化格式；精确预测行、revision 和浏览器冒烟结果见[模型梯度原始报告](results/raw/browser-model-ladder.json)。
 
 ## 快速开始
 
@@ -81,7 +80,7 @@ export HF_HOME=/path/to/large-drive/huggingface
 pip install -e '.[torch]'
 ```
 
-首次调用会自动从 Hugging Face 下载固定 revision 并缓存到 `HF_HOME`，无需提前手动下载模型。
+首次调用会自动从 Hugging Face 下载固定 revision 并缓存到 `HF_HOME`。
 
 ```python
 from fastjev import Choice, FastJev, Option
@@ -104,7 +103,7 @@ print(result.probabilities)
 print(result.provenance)
 ```
 
-远程模型必须使用不可变的 40 字符 Hugging Face revision。本地模型目录也受支持，但需要提供非空 revision 标签来记录结果来源。
+远程模型使用不可变的 40 字符 Hugging Face revision。本地模型目录使用描述性 revision 标签记录结果来源。
 
 使用本地或 Hugging Face 托管的 GGUF 文件时安装 `.[llama-cpp]`。[Python SDK 指南](docs/SDK.zh-CN.md)介绍 llama.cpp 的设置与来源记录。
 
@@ -121,7 +120,7 @@ print(result.provenance)
 
 在这项 RTX 5090 / WSL 工作负载上，vLLM 吞吐量为 Torch 的 1.96 倍，batch 中位延迟降低 48.9%。额外的 30.38 秒启动成本需要常驻处理约 383 个三项决策 batch 才能抵消。两个后端的三项选择完全一致。
 
-这是一项记录在 [PR #7](https://github.com/chengyongru/fastjev/pull/7) 中的历史集成测量，不属于仓库内可复现的 benchmark bundle：PR 保存了精确环境和中位数，但没有提交七次计时的逐次原始值。
+[PR #7](https://github.com/chengyongru/fastjev/pull/7) 记录了这项历史集成测量，包括精确环境和汇总中位数。仓库内的可复现 benchmark bundle 覆盖另外提交了逐行数据的实验。
 
 ### 决策质量
 
@@ -131,7 +130,7 @@ print(result.provenance)
 | WANLI，256 行 | **0.637** | 0.522 | — |
 | TypeSafe 公开子集，102 行 / 20 个 case | **0.845** | 0.560 | 0.883 |
 
-前两行是平衡准确率，第三行是按 case 等权的众数一致率。Jev 数值来自公开记录，并非在线端点实测。完整数据、扰动测试与声明边界见[结果文档](docs/RESULTS.zh-CN.md)。
+前两行是平衡准确率，第三行是按 case 等权的众数一致率。Jev 一列复述公开记录，两个开放模型列来自本地冻结评估。完整数据、扰动测试与声明边界见[结果文档](docs/RESULTS.zh-CN.md)。
 
 ## 后端与接口
 
@@ -140,7 +139,7 @@ print(result.provenance)
 | PyTorch/CUDA | `pip install -e '.[torch]'` | 默认直接 logits 评分 |
 | vLLM/CUDA | `pip install -e '.[vllm]'` | 批量常驻服务 |
 | MLX/Apple Silicon | 查看 [MLX 指南](docs/MLX.zh-CN.md) | 原生 macOS arm64 推理 |
-| WebGPU/GGUF | 打开[浏览器 demo](webgpu-demo/index.html) | 无需 Python 的本地推理 |
+| WebGPU/GGUF | 打开[浏览器 demo](webgpu-demo/index.html) | 浏览器本地推理 |
 
 使用 `fastjev-score` 处理 JSONL。安装 `.[api]` 并运行 `fastjev-serve`，即可提供 `POST /v1/systemone` 和 `GET /v1/models`。[SDK 指南](docs/SDK.zh-CN.md)介绍 batching 和自定义后端；[HTTP 指南](docs/SYSTEM_ONE_API.zh-CN.md)介绍服务配置、认证与兼容边界。
 
@@ -152,12 +151,12 @@ print(result.provenance)
 - [基准包](benchmarks/README.zh-CN.md) — fixture、runner 和来源选择
 - [交互回放](demo/index.html)与[纯浏览器 WebGPU demo](webgpu-demo/index.html)
 
-## 限制与来源
+## 使用边界与来源
 
-FastJev 返回的是以所给选项为条件的概率，并非经过校准的置信度。在使用阈值执行高影响自动化之前，请在实际部署工作负载上完成验证与校准。实验性的共享前缀模式可能改变接近决策边界的 BF16 argmax。
+FastJev 返回以所给选项为条件的概率，并标记 `calibrated=False`。实际部署工作负载上的验证与校准用于建立高影响自动化阈值。实验性的共享前缀模式可能改变接近决策边界的 BF16 argmax。
 
-本仓库不分发模型权重或第三方评估记录。上游模型沿用各自许可证，精确 revision 记录在 [THIRD_PARTY.zh-CN.md](THIRD_PARTY.zh-CN.md)。
+模型权重保存在上游站点，第三方评估记录保存在原始来源。上游模型沿用各自许可证，精确 revision 记录在 [THIRD_PARTY.zh-CN.md](THIRD_PARTY.zh-CN.md)。
 
-FastJev 是 [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf)（原名 OpenJev）的独立维护分支，保留原始 Git 历史和 MIT 许可证，但采用独立路线图。FastJev 与 TheoLeeCJ、TypeSafe 或 Jev 无隶属关系，也未获得其背书；它不复现 Jev 未公开的模型、训练方法、校准能力或性能。
+FastJev 是 [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf)（原名 OpenJev）的独立维护分支，保留原始 Git 历史和 MIT 许可证，并采用独立路线图。FastJev、TheoLeeCJ/SemIf、TypeSafe 和 Jev 分别作为独立项目运行。FastJev 使用开放模型实现公开的接口模式；Jev 管理其专有模型、训练方法、校准能力和性能声明。
 
 项目代码按 [MIT 许可证](LICENSE)发布。
