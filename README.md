@@ -4,6 +4,8 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+<img src="assets/fastjev-cover.png" alt="fastjev semantic decision architecture" width="100%">
+
 **An SDK-first toolkit for fast, self-hosted semantic decisions with open models.**
 
 *An independently maintained fork of [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf).*
