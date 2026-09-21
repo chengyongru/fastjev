@@ -39,6 +39,7 @@ mlx = [
 ]
 llama-cpp = [
   "llama-cpp-python==0.3.35",
+  "huggingface-hub==1.31.0",
 ]
 vllm = [
   "vllm==0.29.0",

@@ -24,6 +24,8 @@ def main() -> None:
                         help="llama.cpp layers to offload; -1 means all layers")
     parser.add_argument("--llama-cpp-n-batch", type=int, default=512,
                         help="llama.cpp prompt batch size")
+    parser.add_argument("--llama-cpp-filename",
+                        help="Exact GGUF filename when --model is a Hugging Face repo ID")
     parser.add_argument("--model", required=True)
     parser.add_argument("--revision", required=True)
     parser.add_argument("--input", type=Path, required=True)
@@ -36,6 +38,8 @@ def main() -> None:
         parser.error("--llama-cpp-n-gpu-layers must be -1 or nonnegative")
     if args.llama_cpp_n_batch < 1:
         parser.error("--llama-cpp-n-batch must be positive")
+    if args.llama_cpp_filename is not None and args.backend != "llama-cpp":
+        parser.error("--llama-cpp-filename requires --backend llama-cpp")
     if args.mlx_bits and args.backend != "mlx":
         parser.error("--mlx-bits requires --backend mlx")
     if args.mlx_cache_limit_mib is not None:
@@ -67,6 +71,7 @@ def main() -> None:
         model, tokenizer, metadata = llama_cpp_backend.load_model(
             args.model,
             args.revision,
+            filename=args.llama_cpp_filename,
             max_input_tokens=args.max_tokens,
             n_batch=args.llama_cpp_n_batch,
             n_gpu_layers=args.llama_cpp_n_gpu_layers,

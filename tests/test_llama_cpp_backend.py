@@ -167,6 +167,9 @@ def test_load_model_resolves_a_single_gguf_and_pins_runtime(monkeypatch, tmp_pat
     }
     assert metadata["source_artifact_sha256"] == hashlib.sha256(b"fixture-gguf").hexdigest()
     assert metadata["llama_cpp_version"] == "fixture-version"
+    assert metadata["source"] == str(model_path.resolve())
+    assert metadata["source_filename"] is None
+    assert metadata["resolved_model_path"] == str(model_path.resolve())
 
 
 def test_load_model_accepts_a_directory_with_one_gguf(monkeypatch, tmp_path):
@@ -197,6 +200,109 @@ def test_load_model_grows_implicit_context_for_the_default_batch(monkeypatch, tm
     llama_cpp_backend.load_model(str(model_path), "local-revision", max_input_tokens=128)
 
     assert observed["n_ctx"] == 512
+
+
+def test_load_model_downloads_an_exact_remote_gguf(monkeypatch, tmp_path):
+    model_path = tmp_path / "model-q4.gguf"
+    model_path.write_bytes(b"remote-fixture-gguf")
+    download = {}
+    loaded = {}
+
+    def fake_download(**kwargs):
+        download.update(kwargs)
+        return str(model_path)
+
+    class FakeLlama:
+        def __init__(self, **kwargs):
+            loaded.update(kwargs)
+
+    monkeypatch.setitem(
+        sys.modules,
+        "huggingface_hub",
+        SimpleNamespace(hf_hub_download=fake_download),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "llama_cpp",
+        SimpleNamespace(Llama=FakeLlama, __version__="fixture-version"),
+    )
+    revision = "a" * 40
+
+    _, _, metadata = llama_cpp_backend.load_model(
+        "fixture/repo",
+        revision,
+        filename="quantized/model-q4.gguf",
+    )
+
+    assert download == {
+        "repo_id": "fixture/repo",
+        "filename": "quantized/model-q4.gguf",
+        "revision": revision,
+    }
+    assert loaded["model_path"] == str(model_path.resolve())
+    assert metadata["source"] == "fixture/repo"
+    assert metadata["source_filename"] == "quantized/model-q4.gguf"
+    assert metadata["resolved_model_path"] == str(model_path.resolve())
+    assert metadata["source_artifact_sha256"] == hashlib.sha256(
+        b"remote-fixture-gguf"
+    ).hexdigest()
+
+
+@pytest.mark.parametrize(
+    "revision,filename,message",
+    [
+        ("main", "model.gguf", "pinned 40-character"),
+        ("a" * 40, None, "exact .gguf filename"),
+        ("a" * 40, "model.safetensors", "exact .gguf filename"),
+    ],
+)
+def test_remote_gguf_requires_an_exact_file_and_revision(revision, filename, message):
+    with pytest.raises(ValueError, match=message):
+        llama_cpp_backend.load_model(
+            "fixture/repo",
+            revision,
+            filename=filename,
+        )
+
+
+def test_local_gguf_rejects_remote_filename(tmp_path):
+    model_path = tmp_path / "model.gguf"
+    model_path.write_bytes(b"fixture-gguf")
+
+    with pytest.raises(ValueError, match="only valid for a Hugging Face"):
+        llama_cpp_backend.load_model(
+            str(model_path),
+            "local-revision",
+            filename="model.gguf",
+        )
+
+
+def test_public_backend_forwards_remote_filename(monkeypatch):
+    observed = {}
+
+    def fake_load_model(source, revision, **kwargs):
+        observed.update(source=source, revision=revision, **kwargs)
+        return object(), None, {"source": source, "revision": revision}
+
+    monkeypatch.setattr(
+        "fastjev.backends.llama_cpp.llama_cpp_backend.load_model",
+        fake_load_model,
+    )
+    revision = "b" * 40
+
+    backend = LlamaCppBackend.from_pretrained(
+        "fixture/repo",
+        revision,
+        filename="model-q4.gguf",
+    )
+
+    assert observed["filename"] == "model-q4.gguf"
+    assert backend.info.model == "fixture/repo"
+
+
+def test_public_backend_rejects_remote_without_filename():
+    with pytest.raises(ModelLoadError, match="exact .gguf filename"):
+        LlamaCppBackend.from_pretrained("fixture/repo", "a" * 40)
 
 
 def test_llama_cpp_backend_reports_missing_optional_dependency(monkeypatch):

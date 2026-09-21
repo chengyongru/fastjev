@@ -11,7 +11,7 @@ from .base import BackendCapabilities, BackendInfo, BackendRequest, BackendResul
 
 
 class LlamaCppBackend:
-    """Score categorical requests with one resident local GGUF model."""
+    """Score categorical requests with one resident GGUF model."""
 
     def __init__(self, model: Any, tokenizer: Any, metadata: dict, *, max_input_tokens: int = 4096):
         if type(max_input_tokens) is not int or max_input_tokens < 1:
@@ -34,17 +34,19 @@ class LlamaCppBackend:
         model: str,
         revision: str,
         *,
+        filename: str | None = None,
         max_input_tokens: int = 4096,
         n_ctx: int | None = None,
         n_batch: int = 512,
         n_gpu_layers: int = -1,
         **llama_kwargs: Any,
     ) -> "LlamaCppBackend":
-        """Load a local GGUF checkpoint through the optional llama.cpp runtime."""
+        """Load a local or Hugging Face GGUF through the optional llama.cpp runtime."""
         try:
             loaded, tokenizer, metadata = llama_cpp_backend.load_model(
                 model,
                 revision,
+                filename=filename,
                 max_input_tokens=max_input_tokens,
                 n_ctx=n_ctx,
                 n_batch=n_batch,

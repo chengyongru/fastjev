@@ -11,6 +11,7 @@ from semif_phase1.cli import main
     (["--mode", "direct", "--mlx-bits", "4"], "requires --backend mlx"),
     (["--mode", "direct", "--mlx-cache-limit-mib", "0"], "requires --backend mlx"),
     (["--mode", "direct", "--backend", "mlx", "--mlx-cache-limit-mib", "-1"], "must be nonnegative"),
+    (["--mode", "direct", "--llama-cpp-filename", "model.gguf"], "requires --backend llama-cpp"),
 ])
 def test_invalid_backend_combinations_fail_before_loading(tmp_path, monkeypatch, capsys, extra, message):
     monkeypatch.setattr(sys, "argv", ["fastjev-score", "--model", "unused", "--revision", "unused",
@@ -55,10 +56,11 @@ def test_cli_passes_llama_cpp_options_to_loader(tmp_path, monkeypatch):
 
     observed = {}
 
-    def load_model(source, revision, *, max_input_tokens, n_batch, n_gpu_layers):
+    def load_model(source, revision, *, filename, max_input_tokens, n_batch, n_gpu_layers):
         observed.update(
             source=source,
             revision=revision,
+            filename=filename,
             max_input_tokens=max_input_tokens,
             n_batch=n_batch,
             n_gpu_layers=n_gpu_layers,
@@ -85,16 +87,17 @@ def test_cli_passes_llama_cpp_options_to_loader(tmp_path, monkeypatch):
     }) + "\n")
     monkeypatch.setattr(sys, "argv", [
         "fastjev-score", "--backend", "llama-cpp", "--mode", "direct",
-        "--model", "fixture.gguf", "--revision", "local", "--input", str(source),
+        "--model", "fixture/repo", "--revision", "a" * 40, "--input", str(source),
         "--output", str(output), "--max-tokens", "123", "--llama-cpp-n-batch", "64",
-        "--llama-cpp-n-gpu-layers", "7",
+        "--llama-cpp-n-gpu-layers", "7", "--llama-cpp-filename", "model-q4.gguf",
     ])
 
     main()
 
     assert observed == {
-        "source": "fixture.gguf",
-        "revision": "local",
+        "source": "fixture/repo",
+        "revision": "a" * 40,
+        "filename": "model-q4.gguf",
         "max_input_tokens": 123,
         "n_batch": 64,
         "n_gpu_layers": 7,

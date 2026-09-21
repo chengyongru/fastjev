@@ -26,6 +26,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--mlx-cache-limit-mib", type=int)
     parser.add_argument("--llama-cpp-n-gpu-layers", type=int, default=-1)
     parser.add_argument("--llama-cpp-n-batch", type=int, default=512)
+    parser.add_argument("--llama-cpp-filename",
+                        help="Exact GGUF filename when --model is a Hugging Face repo ID")
     return parser
 
 
@@ -38,6 +40,8 @@ def _validate_args(parser: argparse.ArgumentParser, args) -> str | None:
         parser.error("--llama-cpp-n-gpu-layers must be -1 or nonnegative")
     if n_batch < 1:
         parser.error("--llama-cpp-n-batch must be positive")
+    if getattr(args, "llama_cpp_filename", None) is not None and args.backend != "llama-cpp":
+        parser.error("--llama-cpp-filename requires --backend llama-cpp")
     if not 1 <= args.port <= 65535:
         parser.error("--port must be between 1 and 65535")
     if args.mlx_bits and args.backend != "mlx":
@@ -80,6 +84,7 @@ def _scorer(args):
         model, tokenizer, metadata = llama_cpp_backend.load_model(
             args.model,
             args.revision,
+            filename=args.llama_cpp_filename,
             max_input_tokens=args.max_tokens,
             n_batch=args.llama_cpp_n_batch,
             n_gpu_layers=args.llama_cpp_n_gpu_layers,

@@ -40,9 +40,9 @@ jev.close()
 
 Use `FastJev` as a context manager when its lifetime is scoped. Closing an engine closes its backend and rejects later decisions; built-in backends release their model and tokenizer references without modifying global accelerator state.
 
-## Load a local GGUF through llama.cpp
+## Load a GGUF through llama.cpp
 
-Install the optional llama.cpp Python bindings when the model is a local GGUF file, including GGUF files downloaded through a desktop model manager:
+Install the optional llama.cpp Python bindings for a local GGUF file, including one downloaded through a desktop model manager, or for a GGUF hosted on Hugging Face:
 
 ```bash
 pip install -e '.[llama-cpp]'
@@ -69,7 +69,18 @@ with FastJev(backend) as jev:
     )
 ```
 
-The `revision` is a local provenance label; `LlamaCppBackend` also records the GGUF SHA-256. Quantized GGUF results require separate quality and latency validation from the BF16 Torch baseline.
+For automatic Hugging Face download, pass the repository ID, exact GGUF filename, and immutable 40-character commit revision. The file uses the standard Hugging Face cache and authentication settings:
+
+```python
+backend = LlamaCppBackend.from_pretrained(
+    "bartowski/Qwen_Qwen3.5-4B-GGUF",
+    revision="4168f45a16a1290d65a4ec0fa312ae917a4c15d6",
+    filename="Qwen_Qwen3.5-4B-Q4_K_M.gguf",
+    n_gpu_layers=-1,
+)
+```
+
+The explicit filename prevents fastjev from silently choosing among a repository's quantizations. For local files, `revision` is a provenance label. For both sources, `LlamaCppBackend` records the resolved artifact path and GGUF SHA-256. Quantized GGUF results require separate quality and latency validation from the BF16 Torch baseline.
 
 ## Load the optional vLLM backend
 

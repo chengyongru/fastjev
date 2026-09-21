@@ -5,15 +5,14 @@ from __future__ import annotations
 import hashlib
 from importlib.metadata import version
 from pathlib import Path
+import re
 import time
 
 from .core import LETTERS, digest, direct_messages, softmax
 from .direct import PROMPT_VERSION
 
 
-def _resolve_model_path(source: str) -> Path:
-    if not isinstance(source, str) or not source:
-        raise ValueError("model must be a nonempty GGUF file or directory")
+def _resolve_local_model(source: str) -> Path:
     path = Path(source).expanduser()
     if path.is_dir():
         candidates = sorted(path.glob("*.gguf"))
@@ -26,6 +25,48 @@ def _resolve_model_path(source: str) -> Path:
     if not path.is_file() or path.suffix.lower() != ".gguf":
         raise ValueError("model must point to an existing .gguf file")
     return path.resolve()
+
+
+def _resolve_model(
+    source: str,
+    revision: str,
+    filename: str | None,
+) -> tuple[Path, str, str | None]:
+    if not isinstance(source, str) or not source:
+        raise ValueError("model must be a nonempty local path or Hugging Face repo ID")
+    candidate = Path(source).expanduser()
+    if candidate.exists():
+        if filename is not None:
+            raise ValueError("filename is only valid for a Hugging Face GGUF repository")
+        path = _resolve_local_model(source)
+        return path, str(path), None
+
+    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise ValueError(
+            "Remote GGUF models require a pinned 40-character commit revision"
+        )
+    if not isinstance(filename, str) or not filename or Path(filename).suffix.lower() != ".gguf":
+        raise ValueError(
+            "Remote GGUF models require the exact .gguf filename; "
+            "fastjev does not choose a quantization automatically"
+        )
+    try:
+        from huggingface_hub import hf_hub_download
+    except ImportError as error:
+        raise RuntimeError(
+            "Hugging Face download support is missing; install 'fastjev[llama-cpp]'"
+        ) from error
+    try:
+        downloaded = hf_hub_download(
+            repo_id=source,
+            filename=filename,
+            revision=revision,
+        )
+    except Exception as error:
+        raise RuntimeError(
+            f"Could not download {filename!r} from Hugging Face repo {source!r}: {error}"
+        ) from error
+    return _resolve_local_model(downloaded), source, filename
 
 
 def _sha256(path: Path) -> str:
@@ -113,22 +154,23 @@ def load_model(
     source: str,
     revision: str,
     *,
+    filename: str | None = None,
     max_input_tokens: int = 4096,
     n_ctx: int | None = None,
     n_batch: int = 512,
     n_gpu_layers: int = -1,
     **llama_kwargs,
 ):
-    """Load one local GGUF model with logits retained for direct scoring."""
+    """Load one local or Hugging Face GGUF with logits retained for direct scoring."""
     if type(max_input_tokens) is not int or max_input_tokens < 1:
         raise ValueError("max_input_tokens must be a positive integer")
     if not isinstance(revision, str) or not revision:
-        raise ValueError("revision must be a nonempty local provenance label")
+        raise ValueError("revision must be a nonempty provenance label or commit")
     if type(n_batch) is not int or n_batch < 1:
         raise ValueError("n_batch must be a positive integer")
     if type(n_gpu_layers) is not int or n_gpu_layers < -1:
         raise ValueError("n_gpu_layers must be -1 or a nonnegative integer")
-    path = _resolve_model_path(source)
+    path, source_identity, source_filename = _resolve_model(source, revision, filename)
     context = max(max_input_tokens + 1, n_batch) if n_ctx is None else n_ctx
     if type(context) is not int or context < max_input_tokens + 1:
         raise ValueError("n_ctx must be at least max_input_tokens + 1")
@@ -158,7 +200,7 @@ def load_model(
             "llama.cpp backend dependencies are missing; install 'fastjev[llama-cpp]'"
         ) from error
     metadata = {
-        "source": str(path),
+        "source": source_identity,
         "revision": revision,
         "backend": "llama-cpp",
         "llama_cpp_version": _runtime_version(llama_cpp),
@@ -166,6 +208,8 @@ def load_model(
         "context_length": context,
         "n_batch": n_batch,
         "n_gpu_layers": n_gpu_layers,
+        "resolved_model_path": str(path),
+        "source_filename": source_filename,
         "source_artifact_sha256": _sha256(path),
     }
     return model, None, metadata

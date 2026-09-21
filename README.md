@@ -78,7 +78,7 @@ print(result.value, result.probabilities)
 jev.close()
 ```
 
-`FastJev` depends only on the `ScoringBackend` protocol. The built-in Torch, MLX, llama.cpp GGUF, and optional vLLM implementations are adapters, so changing the runtime does not change `Choice`, `Boolean`, `Score`, or result types. Install `.[vllm]` for batched CUDA inference through vLLM, or `.[llama-cpp]` for local GGUF files. See the [Python SDK guide](docs/SDK.md) for setup, batching, result semantics, backend contracts, and System One adaptation.
+`FastJev` depends only on the `ScoringBackend` protocol. The built-in Torch, MLX, llama.cpp GGUF, and optional vLLM implementations are adapters, so changing the runtime does not change `Choice`, `Boolean`, `Score`, or result types. Install `.[vllm]` for batched CUDA inference through vLLM, or `.[llama-cpp]` for local or Hugging Face-hosted GGUF files. See the [Python SDK guide](docs/SDK.md) for setup, batching, result semantics, backend contracts, and System One adaptation.
 
 Install `.[api]` and import `create_app` from `fastjev.http` only when an HTTP boundary is needed.
 

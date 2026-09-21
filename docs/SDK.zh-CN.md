@@ -40,9 +40,9 @@ jev.close()
 
 当 engine 生命周期有明确作用域时，可将 `FastJev` 用作 context manager。关闭 engine 会关闭 backend，并拒绝后续决策；内置 backend 会释放模型与 tokenizer 引用，但不修改全局 accelerator 状态。
 
-## 通过 llama.cpp 加载本地 GGUF
+## 通过 llama.cpp 加载 GGUF
 
-当模型是本地 GGUF 文件（包括通过桌面模型管理器下载的 GGUF）时，安装可选的 llama.cpp Python binding：
+使用本地 GGUF（包括桌面模型管理器下载的文件）或 Hugging Face 上托管的 GGUF 时，安装可选的 llama.cpp Python binding：
 
 ```bash
 pip install -e '.[llama-cpp]'
@@ -69,7 +69,18 @@ with FastJev(backend) as jev:
     )
 ```
 
-`revision` 是本地 provenance 标签；`LlamaCppBackend` 还会记录 GGUF 的 SHA-256。量化 GGUF 的质量和延迟需要独立于 BF16 Torch baseline 重新验证。
+要从 Hugging Face 自动下载，请传入仓库 ID、精确的 GGUF 文件名，以及不可变的 40 位 commit revision。下载使用 Hugging Face 的标准缓存和认证设置：
+
+```python
+backend = LlamaCppBackend.from_pretrained(
+    "bartowski/Qwen_Qwen3.5-4B-GGUF",
+    revision="4168f45a16a1290d65a4ec0fa312ae917a4c15d6",
+    filename="Qwen_Qwen3.5-4B-Q4_K_M.gguf",
+    n_gpu_layers=-1,
+)
+```
+
+显式文件名可以避免 fastjev 在仓库的多个量化版本之间擅自选择。本地文件的 `revision` 是 provenance 标签；两种来源都会记录解析后的工件路径和 GGUF SHA-256。量化 GGUF 的质量和延迟需要独立于 BF16 Torch baseline 重新验证。
 
 ## 加载可选 vLLM backend
 
