@@ -16,10 +16,9 @@
 
 ## Why fastjev
 
-fastjev has three priorities, in this order:
+fastjev has two priorities, in this order:
 
 - **SDK-first integration:** the public Python package is the primary interface for applications. CLI commands remain available for reproducibility, operations, and debugging.
-- **Independent iteration:** maintainers can choose release timing, compatibility policy, and engineering priorities without waiting for upstream changes.
 - **Faster inference:** generation-free scoring, resident model serving, measured cache reuse, and backend profiling are first-class priorities. Performance changes must include reproducible evidence and must not trade away decision quality silently.
 
 Faster inference is a project direction, not an unqualified claim that every fastjev path is faster or more accurate than upstream, Jev, or another serving stack. The measurements below define the hardware, models, workloads, and known semantic differences. Historical benchmark artifacts and media retain SemIf/OpenJev names where renaming would invalidate checksums or misrepresent recorded runs.
