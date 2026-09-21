@@ -75,7 +75,7 @@ print(result.value, result.probabilities)
 jev.close()
 ```
 
-`FastJev` 只依赖 `ScoringBackend` 协议。内置 Torch、MLX 和可选 vLLM 实现都是适配器，因此切换 runtime 无需改变 `Choice`、`Boolean`、`Score` 或结果类型。通过 vLLM 批量进行 CUDA 推理时安装 `.[vllm]`。安装方式、batching、结果语义、backend 合约和 System One 适配方式见 [Python SDK 指南](docs/SDK.zh-CN.md)。
+`FastJev` 只依赖 `ScoringBackend` 协议。内置 Torch、MLX、llama.cpp GGUF 和可选 vLLM 实现都是适配器，因此切换 runtime 无需改变 `Choice`、`Boolean`、`Score` 或结果类型。通过 vLLM 批量进行 CUDA 推理时安装 `.[vllm]`；使用本地 GGUF 文件时安装 `.[llama-cpp]`。安装方式、batching、结果语义、backend 合约和 System One 适配方式见 [Python SDK 指南](docs/SDK.zh-CN.md)。
 
 只有需要 HTTP 边界时，才安装 `.[api]` 并从 `fastjev.http` 导入 `create_app`。
 

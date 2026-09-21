@@ -11,8 +11,8 @@ from .system_one import SystemOneService
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--backend", choices=("torch", "mlx"), default="torch")
-    parser.add_argument("--model", required=True, help="Hugging Face model ID or local model path")
+    parser.add_argument("--backend", choices=("torch", "mlx", "llama-cpp"), default="torch")
+    parser.add_argument("--model", required=True, help="Hugging Face model ID, local checkpoint, or GGUF file")
     parser.add_argument("--revision", required=True)
     parser.add_argument("--served-model", required=True, help="Model ID accepted by the HTTP API")
     parser.add_argument("--served-model-description", required=True)
@@ -24,12 +24,20 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--allow-unauthenticated", action="store_true")
     parser.add_argument("--mlx-bits", type=int, choices=(4, 8))
     parser.add_argument("--mlx-cache-limit-mib", type=int)
+    parser.add_argument("--llama-cpp-n-gpu-layers", type=int, default=-1)
+    parser.add_argument("--llama-cpp-n-batch", type=int, default=512)
     return parser
 
 
 def _validate_args(parser: argparse.ArgumentParser, args) -> str | None:
     if args.max_tokens < 1:
         parser.error("--max-tokens must be positive")
+    n_gpu_layers = getattr(args, "llama_cpp_n_gpu_layers", -1)
+    n_batch = getattr(args, "llama_cpp_n_batch", 512)
+    if n_gpu_layers < -1:
+        parser.error("--llama-cpp-n-gpu-layers must be -1 or nonnegative")
+    if n_batch < 1:
+        parser.error("--llama-cpp-n-batch must be positive")
     if not 1 <= args.port <= 65535:
         parser.error("--port must be between 1 and 65535")
     if args.mlx_bits and args.backend != "mlx":
@@ -66,6 +74,17 @@ def _scorer(args):
             args.model, args.revision, args.mlx_bits, cache_limit_mib=cache_limit
         )
         direct = mlx_backend.score
+    elif args.backend == "llama-cpp":
+        from . import llama_cpp_backend
+
+        model, tokenizer, metadata = llama_cpp_backend.load_model(
+            args.model,
+            args.revision,
+            max_input_tokens=args.max_tokens,
+            n_batch=args.llama_cpp_n_batch,
+            n_gpu_layers=args.llama_cpp_n_gpu_layers,
+        )
+        direct = llama_cpp_backend.score
     else:
         from .core import load_causal_model
         from .direct import score as direct

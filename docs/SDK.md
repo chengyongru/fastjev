@@ -40,6 +40,37 @@ jev.close()
 
 Use `FastJev` as a context manager when its lifetime is scoped. Closing an engine closes its backend and rejects later decisions; built-in backends release their model and tokenizer references without modifying global accelerator state.
 
+## Load a local GGUF through llama.cpp
+
+Install the optional llama.cpp Python bindings when the model is a local GGUF file, including GGUF files downloaded through a desktop model manager:
+
+```bash
+pip install -e '.[llama-cpp]'
+```
+
+`LlamaCppBackend` reads the model's embedded chat template and last-position logits directly. It does not start or require another server, and it rejects GGUF files without a safe chat template or exact single-token answer slots:
+
+```python
+from fastjev import Choice, FastJev, LlamaCppBackend, Option
+
+backend = LlamaCppBackend.from_pretrained(
+    r"C:\models\qwen3.5-4b-instruct-q4_k_m.gguf",
+    revision="local-qwen3.5-4b-q4-k-m",
+    n_gpu_layers=-1,
+)
+
+with FastJev(backend) as jev:
+    result = jev.decide(
+        "The customer cannot access the account.",
+        Choice("Which queue should handle this request?", [
+            Option("access", "Account access and authentication support."),
+            Option("billing", "Billing, payments, and refunds."),
+        ]),
+    )
+```
+
+The `revision` is a local provenance label; `LlamaCppBackend` also records the GGUF SHA-256. Quantized GGUF results require separate quality and latency validation from the BF16 Torch baseline.
+
 ## Load the optional vLLM backend
 
 Install the separately pinned vLLM runtime on a supported CUDA host:
@@ -112,11 +143,11 @@ answers = jev.decide_many(state, {
 })
 ```
 
-`FastJev` serializes calls into a backend so one resident model is not used concurrently. The vLLM backend batches all requests received by one `decide_many` call. The built-in Torch and MLX backends currently evaluate those requests in order.
+`FastJev` serializes calls into a backend so one resident model is not used concurrently. The vLLM backend batches all requests received by one `decide_many` call. The built-in Torch, MLX, and llama.cpp backends currently evaluate these requests in order.
 
 ## Backend protocol
 
-The engine does not import Torch, MLX, Transformers, or vLLM. It depends on the runtime-checkable `ScoringBackend` protocol:
+The engine does not import Torch, MLX, Transformers, llama.cpp, or vLLM. It depends on the runtime-checkable `ScoringBackend` protocol:
 
 ```python
 from typing import Sequence
@@ -153,7 +184,7 @@ A backend owns model loading, prompt execution, batching, and resource cleanup. 
 
 Backend-specific option limits belong in `BackendCapabilities`. The domain types themselves do not embed the built-in Torch limit, so a future backend may support a different number of options without changing the public decision API.
 
-Built-in implementations are available as `TorchBackend`, `MLXBackend`, and `VLLMBackend`. `FastJev.from_pretrained` remains a Torch convenience; other runtimes use explicit dependency injection.
+Built-in implementations are available as `TorchBackend`, `MLXBackend`, `LlamaCppBackend`, and `VLLMBackend`. `FastJev.from_pretrained` remains a Torch convenience; other runtimes use explicit dependency injection.
 
 ## Result semantics
 

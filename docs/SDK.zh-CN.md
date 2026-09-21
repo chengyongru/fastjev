@@ -40,6 +40,37 @@ jev.close()
 
 当 engine 生命周期有明确作用域时，可将 `FastJev` 用作 context manager。关闭 engine 会关闭 backend，并拒绝后续决策；内置 backend 会释放模型与 tokenizer 引用，但不修改全局 accelerator 状态。
 
+## 通过 llama.cpp 加载本地 GGUF
+
+当模型是本地 GGUF 文件（包括通过桌面模型管理器下载的 GGUF）时，安装可选的 llama.cpp Python binding：
+
+```bash
+pip install -e '.[llama-cpp]'
+```
+
+`LlamaCppBackend` 会直接读取 GGUF 内置的 chat template 和最后位置 logits，不启动也不依赖其他服务。缺少安全 chat template 或无法将答案槽位编码为精确单 token 的 GGUF 会被拒绝：
+
+```python
+from fastjev import Choice, FastJev, LlamaCppBackend, Option
+
+backend = LlamaCppBackend.from_pretrained(
+    r"C:\models\qwen3.5-4b-instruct-q4_k_m.gguf",
+    revision="local-qwen3.5-4b-q4-k-m",
+    n_gpu_layers=-1,
+)
+
+with FastJev(backend) as jev:
+    result = jev.decide(
+        "客户无法访问账户。",
+        Choice("哪个队列应该处理这个请求？", [
+            Option("access", "账户访问和身份验证支持。"),
+            Option("billing", "账单、支付和退款支持。"),
+        ]),
+    )
+```
+
+`revision` 是本地 provenance 标签；`LlamaCppBackend` 还会记录 GGUF 的 SHA-256。量化 GGUF 的质量和延迟需要独立于 BF16 Torch baseline 重新验证。
+
 ## 加载可选 vLLM backend
 
 在受支持的 CUDA 主机上安装独立固定版本的 vLLM runtime：
@@ -112,11 +143,11 @@ answers = jev.decide_many(state, {
 })
 ```
 
-`FastJev` 会串行调用 backend，避免并发使用同一个常驻模型。vLLM backend 会批量处理一次 `decide_many` 收到的所有请求；内置 Torch 和 MLX backend 当前仍按顺序评估这些请求。
+`FastJev` 会串行调用 backend，避免并发使用同一个常驻模型。vLLM backend 会批量处理一次 `decide_many` 收到的所有请求；内置 Torch、MLX 和 llama.cpp backend 当前仍按顺序评估这些请求。
 
 ## Backend 协议
 
-engine 不导入 Torch、MLX、Transformers 或 vLLM，只依赖可在运行时检查的 `ScoringBackend` 协议：
+engine 不导入 Torch、MLX、Transformers、llama.cpp 或 vLLM，只依赖可在运行时检查的 `ScoringBackend` 协议：
 
 ```python
 from typing import Sequence
@@ -153,7 +184,7 @@ backend 负责模型加载、prompt 执行、batching 和资源清理。它必�
 
 backend 特定的选项限制写入 `BackendCapabilities`。领域类型本身不嵌入 Torch 内置上限，因此未来 backend 可以支持不同选项数量，而无需改变公共决策 API。
 
-内置实现包括 `TorchBackend`、`MLXBackend` 和 `VLLMBackend`。`FastJev.from_pretrained` 继续作为 Torch 便利入口；其他 runtime 通过显式依赖注入接入。
+内置实现包括 `TorchBackend`、`MLXBackend`、`LlamaCppBackend` 和 `VLLMBackend`。`FastJev.from_pretrained` 继续作为 Torch 便利入口；其他 runtime 通过显式依赖注入接入。
 
 ## 结果语义
 

@@ -37,6 +37,9 @@ test = [
 mlx = [
   "mlx==0.32.2; sys_platform == 'darwin' and platform_machine == 'arm64'",
 ]
+llama-cpp = [
+  "llama-cpp-python==0.3.35",
+]
 vllm = [
   "vllm==0.29.0",
 ]

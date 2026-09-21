@@ -63,7 +63,7 @@ class BackendResult:
 
 @runtime_checkable
 class ScoringBackend(Protocol):
-    """Minimal protocol for Torch, MLX, vLLM, or remote implementations."""
+    """Minimal protocol for Torch, MLX, llama.cpp, vLLM, or remote implementations."""
 
     @property
     def info(self) -> BackendInfo: ...
