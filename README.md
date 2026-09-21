@@ -2,6 +2,8 @@
 
 <div align="center">
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 **An SDK-first toolkit for fast, self-hosted semantic decisions with open models.**
 
 *An independently maintained fork of [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf).*
