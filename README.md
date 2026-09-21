@@ -8,215 +8,181 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-<img src="assets/fastjev-cover.webp" alt="FastJev semantic decision architecture" width="100%">
+<img src="assets/fastjev-cover.webp" alt="FastJev open source Jev implementation for self deployment" width="100%">
 
-**An SDK-first toolkit for fast, self-hosted semantic decisions with open models.**
-
-*An independently maintained fork of [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf).*
+**Deploy an open source Jev implementation on your own infrastructure.**
 
 </div>
 
-> **Fork lineage and independence.** fastjev preserves the Git history and MIT license of [SemIf](https://github.com/TheoLeeCJ/SemIf), formerly OpenJev, while following an independent roadmap. fastjev is not affiliated with or endorsed by TheoLeeCJ, TypeSafe, or Jev. Jev, TypeSafe, and other names and marks remain the property of their respective owners.
+FastJev is an open source implementation of
+[Jev](https://docs.typesafe.ai/) for deployment on infrastructure you control.
+It continues [SemIf](https://github.com/TheoLeeCJ/SemIf) as an independently
+maintained fork. Pinned open models run the `Choice`, `Boolean`, and `Score`
+interface through Torch, vLLM, MLX, and llama.cpp. The WebGPU demo provides
+browser local inference.
 
-## Why fastjev
+## Why FastJev?
 
-fastjev has two priorities, in this order:
+FastJev turns Jev deployment into a standard Python workflow. The SDK loads the
+model, validates 2 to 16 options, performs scoring, and returns typed results
+with probabilities, token usage, timing, model revision, and prompt version.
 
-- **SDK-first integration:** the public Python package is the primary interface for applications. CLI commands remain available for reproducibility, operations, and debugging.
-- **Faster inference:** generation-free scoring, resident model serving, measured cache reuse, and backend profiling are first-class priorities. Performance changes must include reproducible evidence and must not trade away decision quality silently.
+Resident Torch, batched vLLM, native MLX, llama.cpp GGUF, the CLI, and the
+optional System One compatible HTTP API share the same result model. Torch,
+MLX, and llama.cpp return results in one scoring pass with zero output tokens.
 
-Faster inference is a project direction, not an unqualified claim that every fastjev path is faster or more accurate than upstream, Jev, or another serving stack. The measurements below define the hardware, models, workloads, and known semantic differences. Historical benchmark artifacts and media retain SemIf/OpenJev names where renaming would invalidate checksums or misrepresent recorded runs.
+Each result records the model revision and prompt version. Published
+evaluations add row data, raw timings, and checksums for reproducibility.
 
-Many decisions inside agent workflows are narrow: *route this*, *retry that*, *does the evidence support X?* A conventional generative path can answer them, but it emits text that the application must parse before branching.
+## Models you can run now
 
-[Jev](https://typesafe.ai/) is TypeSafe's hosted System One Model for runtime-defined typed decisions. fastjev implements the documented **interface pattern** with open models; it does not reproduce Jev's undisclosed model, training, calibration, or performance.
+The same native BF16 direct logit interface has been validated on these pinned
+checkpoints. Put any listed model ID and revision into the quick start below.
 
-This baseline reads typed option probabilities directly from a model. No answer sentence, JSON repair, or decoding loop.
+| Model | Pinned source revision | Best use | Authored balanced accuracy | Browser option |
+|---|---|---|---:|---:|
+| [Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B) | `c1899de289a04d12100db370d81485cdf75e47ca` | Smallest starting point | 0.440 | Q8_0, 639 MB |
+| [MiniCPM5-2B](https://huggingface.co/openbmb/MiniCPM5-2B) | `12a3808a956f869c767195e9266b59c4d21d92e2` | Size/quality balance | 0.686 | Q4_K_M, 1.56 GB |
+| **[Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B)** | `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` | **Recommended for highest measured quality** | **0.813** | Q4_K_M, 3.01 GB |
 
-### Current focus
+The table reports native BF16 checkpoint quality. Browser artifacts use
+separate quantized formats. Their smoke results, exact rows, and revisions are
+in the [model ladder report](results/raw/browser-model-ladder.json).
 
-- Serve the documented System One wire shape from a resident open model.
-- Reduce decision latency without silently changing direct-scoring semantics.
-- Keep model revisions, benchmark inputs, row-level outputs, and limitations auditable.
+## Quick start
 
-## SDK quick start
-
-**Apple Silicon:** use the native [MLX backend](docs/MLX.md) for direct scoring,
-serial prefix reuse, and parallel shared-state decisions on macOS arm64.
-Until MLX-LM publishes the required normalization fix, install the validated
-source revision explicitly alongside the MLX extra:
+The default backend requires Python 3.10+, CUDA, and exactly one visible GPU.
+Qwen3.5-4B uses about 9 GB of disk for the source checkpoint and measured
+7.891 GiB peak allocated GPU memory in the historical
+[RTX 5090 SDK smoke run](https://github.com/chengyongru/fastjev/pull/5).
 
 ```bash
-pip install -e '.[mlx]' \
-  'mlx-lm @ git+https://github.com/ml-explore/mlx-lm.git@a63e24c389382619eb6d9af656e3b46024be217a'
-```
-
-Then add `--backend mlx` to the scorer command.
-
-Python 3.10+, CUDA, and a GPU that can hold a 4B BF16 model:
-
-```bash
+git clone https://github.com/chengyongru/fastjev.git
+cd fastjev
 python -m venv .venv
 . .venv/bin/activate
 export HF_HOME=/path/to/large-drive/huggingface
 pip install -e '.[torch]'
 ```
 
-Keep the backend resident and score runtime-defined decisions through the typed SDK:
+The first call automatically downloads the pinned model revision from Hugging
+Face and caches it under `HF_HOME`.
 
 ```python
 from fastjev import Choice, FastJev, Option
 
-jev = FastJev.from_pretrained(
+with FastJev.from_pretrained(
     "Qwen/Qwen3.5-4B",
     revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
-)
-result = jev.decide(
-    state="Customer cannot access an account after a password reset.",
-    question=Choice("Which queue should handle this request?", [
-        Option("access", "Account access support."),
-        Option("billing", "Billing support."),
-    ]),
-)
-print(result.value, result.probabilities)
-jev.close()
+) as jev:
+    result = jev.decide(
+        state={"message": "I was charged twice and need a refund today."},
+        question=Choice("Which queue should handle this request?", [
+            Option("access", "Account access and authentication."),
+            Option("billing", "Billing, payments, and refunds."),
+            Option("sales", "Pricing and new contracts."),
+        ]),
+    )
+
+print(result.value)
+print(result.probabilities)
+print(result.provenance)
 ```
 
-`FastJev` depends only on the `ScoringBackend` protocol. The built-in Torch, MLX, llama.cpp GGUF, and optional vLLM implementations are adapters, so changing the runtime does not change `Choice`, `Boolean`, `Score`, or result types. Install `.[vllm]` for batched CUDA inference through vLLM, or `.[llama-cpp]` for local or Hugging Face-hosted GGUF files. See the [Python SDK guide](docs/SDK.md) for setup, batching, result semantics, backend contracts, and System One adaptation.
+Remote models use an immutable Hugging Face revision containing 40 characters.
+Local model directories use a descriptive revision label for result provenance.
 
-Install `.[api]` and import `create_app` from `fastjev.http` only when an HTTP boundary is needed.
+Install `.[llama-cpp]` to run GGUF files from disk or Hugging Face. The
+[Python SDK guide](docs/SDK.md) covers llama.cpp setup and provenance.
 
-## CLI and service wrappers
+## Measured results
 
-Run the owned examples from a shell:
+### RTX 5090 with Torch and vLLM
 
-```bash
-CUDA_VISIBLE_DEVICES=0 fastjev-score \
-  --mode direct \
-  --model Qwen/Qwen3.5-4B \
-  --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a \
-  --input examples/decisions.jsonl \
-  --output results.jsonl
-```
+An integration run on one host used the pinned Qwen3.5-4B checkpoint, identical
+inputs for three questions (125, 152, and 151 tokens), one warmup, and seven
+measured `decide_many` calls.
 
-Each result contains typed option scores, timing, the exact model revision, and a prompt hash.
+| Backend | Model load | Median batch of three decisions | Decisions/s |
+|---|---:|---:|---:|
+| Torch | **10.04 s** | 161.97 ms | 18.52 |
+| vLLM | 40.43 s | **82.73 ms** | **36.26** |
 
-If every row has the same exact state, switch to `--mode shared` to prefill it once and evaluate the criteria in parallel.
+On this RTX 5090 / WSL workload, vLLM delivered 1.96× Torch throughput and
+48.9% lower median batch latency. Its additional 30.38 seconds of startup cost
+breaks even after roughly 383 batches of three decisions when the process stays
+resident. Both backends made the same three selections.
 
-### System One-compatible HTTP API
+[PR #7](https://github.com/chengyongru/fastjev/pull/7) records this historical
+integration measurement, including the exact environment and aggregate medians.
+The repository's reproducible benchmark bundle covers separate experiments with
+committed row data.
 
-Install the `api` extra and run `fastjev-serve` to keep one model resident behind `POST /v1/systemone` and `GET /v1/models`. The adapter accepts TypeSafe's documented `state`, `model`, and `questions` wire shape, including `noul`, `choice`, and `score` questions. It does not serve Jev or reproduce Jev calibration; requests must name the configured fastjev model.
+### Decision quality
 
-See [System One-compatible API](docs/SYSTEM_ONE_API.md) for the server command, request example, authentication, confidence definition, and compatibility limits.
+| Frozen workload | FastJev direct Qwen3.5-4B | Qwen3-Reranker-4B | Published Jev |
+|---|---:|---:|---:|
+| Authored decisions, 144 rows | **0.813** | 0.625 | N/A |
+| WANLI, 256 rows | **0.637** | 0.522 | N/A |
+| TypeSafe public subset, 102 rows / 20 cases | **0.845** | 0.560 | 0.883 |
 
-## How it works
+The first two rows report balanced accuracy. The third reports modal agreement
+with equal weighting across cases. The Jev column reproduces public records.
+The two open model columns come from local frozen evaluations. The
+[results report](docs/RESULTS.md) provides the full data, perturbations, and
+claim boundaries.
 
-```mermaid
-flowchart LR
-    S[Unstructured state] --> M[4B model]
-    C[Runtime criteria] --> M
-    O[Typed options] --> M
-    M -- native option logits --> P[Probabilities]
-```
+## How it compares
 
-- **Runtime-defined:** criteria and option descriptions arrive with the request.
-- **Decision-native:** one forward pass reads declared option logits; no answer token is sampled.
-- **Shared-state aware:** one long state can be prefetched once, then branched across many criteria.
-- **Auditable:** the owned fixture, exact runners, row-level outputs, revisions, prompts, and known failures are committed.
+These projects serve adjacent deployment needs. Their published performance
+belongs to their own workloads.
 
-## Speed
+| Project | Core mechanism | Choose it when | FastJev focus |
+|---|---|---|---|
+| [Laya](https://github.com/NandhaKishorM/laya) | Small decision models with parallel option scoring | Serving with limited resources or multiple languages, especially when fine tuning matches the workflow | Applies standard open causal models to decisions defined at runtime, with pinned revisions and a 4,096 token default input limit |
+| [semantic-router](https://github.com/aurelio-labs/semantic-router) | Embedding similarity against route utterances | Routes and example utterances are stable and vector similarity is enough | Evaluates a supplied state against new criteria and option meanings on every request |
+| [Outlines](https://github.com/dottxt-ai/outlines) | Constrained autoregressive generation | You need arbitrary JSON, regex, grammar, or extraction schemas | Focuses on typed decisions and reads option scores in one scoring pass |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) | Local inference and token logprobs | You want maximum runtime control or a single classifier | Uses llama.cpp as a backend and adds typed questions, validation, provenance, multiple runtimes, HTTP compatibility, and frozen evaluations |
 
-### Decisions versus a compact generated array
+## Backends and interfaces
 
-Same frozen Qwen3.5-4B, same owned state, same 21 binary criteria, one RTX 3090:
+| Runtime | Install | Best for |
+|---|---|---|
+| PyTorch/CUDA | `pip install -e '.[torch]'` | Default scoring from logits |
+| vLLM/CUDA | `pip install -e '.[vllm]'` | Batched resident services |
+| MLX/Apple Silicon | See the [MLX guide](docs/MLX.md) | Native macOS arm64 inference |
+| llama.cpp/GGUF | `pip install -e '.[llama-cpp]'` | GGUF files from disk or Hugging Face |
+| WebGPU/GGUF | Open the [browser demo](webgpu-demo/index.html) | Inference in the browser |
 
-| Output path | Time | Output tokens | Result |
-|---|---:|---:|---|
-| Direct typed logits, median of 3 | **1.023 s** | **0** | 21 probability pairs |
-| Autoregressive JSON array, median of 3 | 5.332 s | 111 | Valid ordered 21-value array |
-
-The compact generative baseline emits only ordered `"yes"`/`"no"` values—no keys, confidence objects, or explanations. Its median first-token time was 0.489 s, but completing the array took **5.21×** as long as direct readout. All three arrays were valid and identical. Their choices agreed with direct argmax on 18/21 criteria, so this is a systems comparison rather than a claim that the two readouts are semantically equivalent. [Exact prompt, outputs, token timeline, and runs](results/raw/decision-vs-compact-array.json) are committed.
-
-### Reusing a state across 21 decisions
-
-On an owned 37-state × 21-criterion workload:
-
-| Execution path | Decisions/s | 777 decisions |
-|---|---:|---:|
-| Fresh direct scoring | 2.33 | 333.1 s |
-| Serial prefix reuse | 10.75 | 72.3 s |
-| Parallel suffixes | **20.03** | **38.8 s** |
-| Native reranker | 1.86 | 417.3 s |
-
-The owned [37×21 fixture](benchmarks/data/shape777.jsonl), [direct/reuse runner](benchmarks/shape777.py), [reranker runner](benchmarks/shape777_reranker.py), [raw timings](results/raw/shape777-direct.json), and [row-level predictions](results/raw/shape777-direct.predictions.jsonl) are included. The fast reuse paths are experimental: BF16 execution changed 5–6 of 777 argmaxes relative to fresh scoring.
-
-## Quality
-
-### Browser model ladder
-
-| System | Browser artifact | Download | Authored balanced accuracy | Perturbation balanced accuracy | TypeSafe subset agreement |
-|---|---|---:|---:|---:|---:|
-| Qwen3-0.6B | Q8_0 | 639 MB | 0.440 | 0.528 | 0.407 |
-| MiniCPM5-2B | Q4_K_M | 1.56 GB | 0.686 | 0.693 | 0.637 |
-| **Qwen3.5-4B** | Q4_K_M | 3.01 GB | **0.813** | **0.766** | 0.845 |
-| Published Jev | Closed hosted service | — | — | — | **0.883** |
-
-*Native BF16 scores. Browser builds use quantized GGUF. Jev is TypeSafe's published result on the same 102-row subset.*
-
-### General decision baseline
-
-| Frozen workload | Rows | Direct logits (4B) | Native reranker (4B) | Published Jev |
-|---|---:|---:|---:|---:|
-| Authored decisions, balanced accuracy | 144 | **0.813** | 0.625 | — |
-| WANLI, balanced accuracy | 256 | **0.637** | 0.522 | — |
-| TypeSafe selected subset, modal agreement | 102 across 20 cases | **0.845** | 0.560 | 0.883 |
-| Every judgment grid, accuracy | 36 | **0.806** | 0.694 | — |
-| Every action firewall, composed accuracy | 10 actions | 0.700 | 0.700 | — |
-| Every code retrieval, Recall@1 | 6 queries | 1.000 | 1.000 | — |
-| Every company knowledge, Recall@1 | 7 queries | 0.929 | 0.929 | — |
-
-The reranker remained strong at retrieval ranking, but direct logits were the better general-decision baseline.
-
-The Jev number is read from TypeSafe's published records; we did not run a live Jev endpoint. The comparison covers the 102 rows that could be aligned from public artifacts, not TypeSafe's reported 711-row aggregate.
-
-## Input
-
-```json
-{
-  "id": "route-1",
-  "state": "Customer cannot access an account after a password reset.",
-  "question": "Which queue should handle this request?",
-  "options": [
-    {"id": "access", "description": "Account access support."},
-    {"id": "billing", "description": "Billing support."}
-  ]
-}
-```
-
-Returned probabilities are conditional on the supplied options. Calibrate and validate them on the workload where they will make decisions.
-`state` may also be a nonempty JSON object or array. Direct modes preserve it as structured JSON; reranker mode renders it as document text.
+Use `fastjev-score` for JSONL jobs. Install `.[api]` and run
+`fastjev-serve` for `POST /v1/systemone` and `GET /v1/models`. The
+[SDK guide](docs/SDK.md) covers batching and custom backends. The
+[HTTP guide](docs/SYSTEM_ONE_API.md) covers server setup, authentication, and
+compatibility boundaries.
 
 ## Documentation
 
-- [Python SDK](docs/SDK.md) — typed decisions, backend protocol, batching, and result semantics
-- [Results](docs/RESULTS.md) — quality, speed, perturbations, and claim boundaries
-- [Method](docs/METHOD.md) — frozen prompts, metrics, and timing scope
-- [Reproduce](docs/REPRODUCE.md) — exact environment, pinned commands, perturbations, and verification
-- [System One-compatible API](docs/SYSTEM_ONE_API.md) — HTTP server, wire format, and compatibility boundaries
-- [Interactive replay](demo/index.html)
-- [Browser-only WebGPU demo](webgpu-demo/index.html) — no waitlist; use it today
-- [Machine-readable summary](results/phase1-summary.json)
-- [Benchmark bundle](benchmarks/README.md) — fixtures, runners, selection IDs, and reproduction commands
-- [Raw results and checksums](results/raw/)
-- [Third-party sources](THIRD_PARTY.md)
+The [results report](docs/RESULTS.md) covers speed, quality, perturbations, and
+limitations. The [method guide](docs/METHOD.md) documents frozen prompts,
+metrics, and timing scope. The [reproduction guide](docs/REPRODUCE.md) provides
+pinned environments and verification commands. The
+[benchmark bundle](benchmarks/README.md) contains fixtures, runners, and source
+selection. The [interactive replay](demo/index.html) and
+[WebGPU browser demo](webgpu-demo/index.html) provide visual ways to explore
+the project.
 
-## Evaluation sources
+## Boundaries and provenance
 
-- [TypeSafe public evaluations](https://evals.typesafe.ai/) — public comparison cases used for selected-subset agreement
-- [Every parallel judgment lab](https://typesafe-parallel-judgment-lab.every-4573.chatgpt.site/) and its [downloadable experiment data](https://typesafe-parallel-judgment-lab.every-4573.chatgpt.site/downloads/experiments.json)
-- [WANLI](https://huggingface.co/datasets/alisawuffles/WANLI) — external natural-language inference check
-- [Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B), [MiniCPM5-2B](https://huggingface.co/openbmb/MiniCPM5-2B), [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B), and [Qwen3-Reranker-4B](https://huggingface.co/Qwen/Qwen3-Reranker-4B) — frozen baseline models
+FastJev returns probabilities conditioned on the supplied options with
+`calibrated=False`.
+Deployment validation and calibration establish thresholds for consequential
+automation. The experimental shared prefix modes can change close BF16 argmax
+results.
 
-Model weights and third-party source records are not included. Upstream models retain their licenses. Project code is released under the [MIT License](LICENSE).
+Model weights stay on upstream hosts, and third party evaluation records stay
+with their original sources. Upstream models retain their licenses. Exact
+revisions are listed in [THIRD_PARTY.md](THIRD_PARTY.md).
 
-The installed distribution and public Python package are both named `fastjev`; `fastjev-score` and `fastjev-serve` are secondary wrappers. The internal `semif_phase1` package and the `semif-score`/`semif-serve` command aliases are retained for compatibility with inherited scripts and artifacts.
+The [third party record](THIRD_PARTY.md) documents source and model provenance.
+
+Project code is released under the [MIT License](LICENSE).
