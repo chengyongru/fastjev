@@ -1,4 +1,4 @@
-"""TypeSafe System One wire-format adapter for SemIf scorers."""
+"""TypeSafe System One wire-format adapter for fastjev scorers."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ CONFIDENCE_METHOD = "one-minus-normalized-entropy"
 
 
 class SystemOneValidationError(ValueError):
-    """A request cannot be represented by the SemIf decision backend."""
+    """A request cannot be represented by the fastjev decision backend."""
 
 
 @dataclass(frozen=True)
@@ -66,7 +66,7 @@ def _validate_state(state) -> None:
 
 
 def request_rows(payload: dict, served_model: str) -> tuple[list[QuestionSpec], list[dict]]:
-    """Validate a System One request and convert its questions to SemIf rows."""
+    """Validate a System One request and convert its questions to scorer rows."""
     if not isinstance(payload, dict):
         _error("body", "must be a JSON object")
     _validate_state(payload.get("state"))
@@ -147,7 +147,7 @@ def request_rows(payload: dict, served_model: str) -> tuple[list[QuestionSpec], 
 
 
 def distribution_confidence(probabilities: list[float]) -> float:
-    """Return a documented SemIf certainty proxy, not TypeSafe's private statistic."""
+    """Return a documented fastjev certainty proxy, not TypeSafe's private statistic."""
     if len(probabilities) < 2:
         raise ValueError("A distribution needs at least two probabilities")
     entropy = -sum(value * math.log(value) for value in probabilities if value > 0)
@@ -170,7 +170,7 @@ def _probabilities(spec: QuestionSpec, result: dict) -> dict[str, float]:
 
 
 def response_from_results(served_model: str, specs: list[QuestionSpec], results: list[dict]) -> dict:
-    """Convert SemIf row results to the documented System One response shape."""
+    """Convert scorer results to the documented System One response shape."""
     if len(results) != len(specs):
         raise RuntimeError("Scorer returned a different number of results than requested")
     answers = {}
@@ -205,7 +205,7 @@ def response_from_results(served_model: str, specs: list[QuestionSpec], results:
         "model": served_model,
         "answers": answers,
         "usage": {"input_tokens": input_tokens, "output_tokens": 0},
-        "semif": {
+        "fastjev": {
             "probability_status": "conditional option scores; uncalibrated as decision confidence",
             "confidence_method": CONFIDENCE_METHOD,
             "prompt_versions": sorted(prompt_versions),

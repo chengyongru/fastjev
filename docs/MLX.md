@@ -1,6 +1,6 @@
 # Apple Silicon / MLX
 
-The native MLX backend runs SemIf's direct, serial-prefix, and parallel-shared
+The native MLX backend runs fastjev's direct, serial-prefix, and parallel-shared
 decision modes on macOS arm64. It uses MLX-LM's Qwen3.5 implementation and the
 same prompts and answer-token checks as the Torch backend. No answer token is
 generated. The browser demo is a separate implementation.
@@ -14,7 +14,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e '.[test,mlx]'
 
-semif-score --backend mlx --mode direct \
+fastjev-score --backend mlx --mode direct \
   --model Qwen/Qwen3.5-4B \
   --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a \
   --input examples/decisions.jsonl \
@@ -64,7 +64,7 @@ the allocation cache, not the active model or batch memory requirement.
 
 [Replayable terminal recording and capture details](media/README.md).
 The screenshot shows the completed recording of a real local CLI run under
-the former OpenJev name. Current commands use `semif-score`.
+the former OpenJev name. Current commands use `fastjev-score`.
 
 ## Cache correctness
 

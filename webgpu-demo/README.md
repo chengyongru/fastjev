@@ -1,4 +1,4 @@
-# SemIf browser lab
+# fastjev browser lab
 
 This is a browser-only comparison of two readout paths through the same selected quantized local model:
 

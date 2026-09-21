@@ -13,10 +13,10 @@ from .system_one import SystemOneService, SystemOneValidationError
 def create_app(service: SystemOneService, api_key: str | None = None) -> FastAPI:
     """Create an app around an already-loaded, single-model service."""
     app = FastAPI(
-        title="SemIf System One API",
+        title="fastjev System One API",
         version="0.1.0",
         description=(
-            "A wire-compatible subset of TypeSafe's System One API backed by SemIf. "
+            "A wire-compatible subset of TypeSafe's System One API backed by fastjev. "
             "It does not serve Jev and its probabilities are not calibrated as Jev probabilities."
         ),
     )

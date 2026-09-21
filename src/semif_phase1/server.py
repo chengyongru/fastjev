@@ -1,4 +1,4 @@
-"""Run one resident SemIf model behind a System One-compatible HTTP API."""
+"""Run one resident fastjev model behind a System One-compatible HTTP API."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-tokens", type=int, default=4096)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument("--api-key-env", default="SEMIF_API_KEY")
+    parser.add_argument("--api-key-env", default="FASTJEV_API_KEY")
     parser.add_argument("--allow-unauthenticated", action="store_true")
     parser.add_argument("--mlx-bits", type=int, choices=(4, 8))
     parser.add_argument("--mlx-cache-limit-mib", type=int)
@@ -40,7 +40,7 @@ def _validate_args(parser: argparse.ArgumentParser, args) -> str | None:
         if args.mlx_cache_limit_mib < 0:
             parser.error("--mlx-cache-limit-mib must be nonnegative")
     if args.served_model.lower().startswith("jev"):
-        parser.error("--served-model must identify SemIf and must not impersonate a Jev model or alias")
+        parser.error("--served-model must identify fastjev and must not impersonate a Jev model or alias")
     if not args.served_model_description:
         parser.error("--served-model-description must not be empty")
     try:

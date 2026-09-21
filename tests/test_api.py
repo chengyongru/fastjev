@@ -19,12 +19,12 @@ def service():
             "prompt_version": "test-v1",
         } for row in rows]
 
-    return SystemOneService(score, "semif-test", "Test model", "2026-09-20")
+    return SystemOneService(score, "fastjev-test", "Test model", "2026-09-20")
 
 
 def request():
     return {
-        "model": "semif-test",
+        "model": "fastjev-test",
         "state": "A deployment failed.",
         "questions": {"failed": {"type": "noul", "instructions": "Did it fail?"}},
     }
@@ -32,8 +32,9 @@ def request():
 
 def test_public_endpoints_and_openapi_schema():
     client = TestClient(create_app(service()))
-    assert client.get("/healthz").json() == {"status": "ready", "model": "semif-test"}
-    assert client.get("/v1/models").json()["models"][0]["name"] == "semif-test"
+    assert client.get("/openapi.json").json()["info"]["title"] == "fastjev System One API"
+    assert client.get("/healthz").json() == {"status": "ready", "model": "fastjev-test"}
+    assert client.get("/v1/models").json()["models"][0]["name"] == "fastjev-test"
     response = client.post("/v1/systemone", json=request())
     assert response.status_code == 200
     assert response.json()["answers"]["failed"] == {"type": "noul", "noul": 0.9}
@@ -67,7 +68,7 @@ def test_scorer_input_errors_use_422():
     def reject(_rows):
         raise ValueError("input exceeds the configured token limit")
 
-    failing = SystemOneService(reject, "semif-test", "Test model", "2026-09-20")
+    failing = SystemOneService(reject, "fastjev-test", "Test model", "2026-09-20")
     response = TestClient(create_app(failing)).post("/v1/systemone", json=request())
     assert response.status_code == 422
     assert "token limit" in response.json()["detail"]

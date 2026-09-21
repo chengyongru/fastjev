@@ -20,17 +20,17 @@ Use one GPU per scorer process. The measured environment was Ubuntu 22.04 on Lin
 ## Score owned examples
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 semif-score --mode direct \
+CUDA_VISIBLE_DEVICES=0 fastjev-score --mode direct \
   --model Qwen/Qwen3.5-4B \
   --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a \
   --input examples/decisions.jsonl --output results-direct.jsonl
 
-CUDA_VISIBLE_DEVICES=0 semif-score --mode serial \
+CUDA_VISIBLE_DEVICES=0 fastjev-score --mode serial \
   --model Qwen/Qwen3.5-4B \
   --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a \
   --input examples/decisions.jsonl --output results-serial.jsonl
 
-CUDA_VISIBLE_DEVICES=0 semif-score --mode reranker \
+CUDA_VISIBLE_DEVICES=0 fastjev-score --mode reranker \
   --model Qwen/Qwen3-Reranker-4B \
   --revision 22e683669bc0f0bd69640a1354a6d0aebcfeede5 \
   --input examples/decisions.jsonl --output results-reranker.jsonl
@@ -62,7 +62,7 @@ python benchmarks/build_perturbations.py \
 cmp /tmp/perturbations108.jsonl benchmarks/data/perturbations108.jsonl
 ```
 
-Regenerate direct and reranker predictions with `semif-score --mode serial` and `--mode reranker`, respectively, or recompute the exact committed report from the included row-level predictions:
+Regenerate direct and reranker predictions with `fastjev-score --mode serial` and `--mode reranker`, respectively, or recompute the exact committed report from the included row-level predictions:
 
 ```bash
 python benchmarks/evaluate_perturbations.py \

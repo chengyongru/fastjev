@@ -1,3 +1,3 @@
-"""SemIf Phase 1: direct option-logit and native reranker baselines."""
+"""fastjev decision scoring, retaining the inherited semif_phase1 import path."""
 
 __version__ = "0.1.0"

@@ -10,7 +10,7 @@ from semif_phase1.system_one import (
 )
 
 
-MODEL = "semif-test"
+MODEL = "fastjev-test"
 
 
 def fake_score(rows):
@@ -69,7 +69,7 @@ def test_mixed_system_one_questions_are_adapted_and_returned():
         "0": "Minor", "1": "Degraded", "2": "Blocking"
     }
     assert response["usage"] == {"input_tokens": 30, "output_tokens": 0}
-    assert response["semif"]["confidence_method"] == "one-minus-normalized-entropy"
+    assert response["fastjev"]["confidence_method"] == "one-minus-normalized-entropy"
 
 
 def test_structured_values_and_option_names_are_present_in_rows():

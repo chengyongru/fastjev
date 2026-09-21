@@ -12,7 +12,7 @@ from semif_phase1.cli import main
     (["--mode", "direct", "--backend", "mlx", "--mlx-cache-limit-mib", "-1"], "must be nonnegative"),
 ])
 def test_invalid_backend_combinations_fail_before_loading(tmp_path, monkeypatch, capsys, extra, message):
-    monkeypatch.setattr(sys, "argv", ["semif-score", "--model", "unused", "--revision", "unused",
+    monkeypatch.setattr(sys, "argv", ["fastjev-score", "--model", "unused", "--revision", "unused",
                                     "--input", "missing.jsonl", "--output", str(tmp_path / "out.jsonl"), *extra])
     with pytest.raises(SystemExit) as error:
         main()
@@ -38,7 +38,7 @@ def test_cli_passes_cache_limit_to_loader(tmp_path, monkeypatch, limit):
     source, output = tmp_path / 'input.jsonl', tmp_path / 'output.jsonl'
     source.write_text(json.dumps({'id': 'test', 'state': 'Evidence', 'question': 'Supported?',
                                  'options': [{'id': 'yes', 'description': 'Yes'}, {'id': 'no', 'description': 'No'}]}) + '\n')
-    args = ['semif-score', '--backend', 'mlx', '--mode', 'direct', '--model', 'unused',
+    args = ['fastjev-score', '--backend', 'mlx', '--mode', 'direct', '--model', 'unused',
             '--revision', 'unused', '--input', str(source), '--output', str(output)]
     if limit is not None:
         args += ['--mlx-cache-limit-mib', str(limit)]

@@ -30,6 +30,17 @@ def test_loopback_can_run_without_authentication(monkeypatch):
     assert _validate_args(_parser(), args()) is None
 
 
+def test_default_api_key_environment_variable_uses_fastjev_name():
+    parsed = _parser().parse_args([
+        "--model", "unused",
+        "--revision", "unused",
+        "--served-model", "fastjev-test",
+        "--served-model-description", "Test model",
+        "--served-model-release-date", "2026-09-20",
+    ])
+    assert parsed.api_key_env == "FASTJEV_API_KEY"
+
+
 def test_non_loopback_requires_authentication_or_explicit_override(monkeypatch):
     monkeypatch.delenv("SEMIF_TEST_API_KEY", raising=False)
     with pytest.raises(SystemExit):
