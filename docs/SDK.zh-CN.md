@@ -40,6 +40,39 @@ jev.close()
 
 当 engine 生命周期有明确作用域时，可将 `FastJev` 用作 context manager。关闭 engine 会关闭 backend，并拒绝后续决策；内置 backend 会释放模型与 tokenizer 引用，但不修改全局 accelerator 状态。
 
+## 加载可选 vLLM backend
+
+在受支持的 CUDA 主机上安装独立固定版本的 vLLM runtime：
+
+```bash
+pip install -e '.[vllm]'
+```
+
+显式构造 backend，再注入同一个 `FastJev` 接口：
+
+```python
+from fastjev import Choice, FastJev, Option, VLLMBackend
+
+backend = VLLMBackend.from_pretrained(
+    "Qwen/Qwen3.5-4B",
+    revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    gpu_memory_utilization=0.8,
+)
+
+with FastJev(backend) as jev:
+    result = jev.decide(
+        {"message": "The customer cannot access the account."},
+        Choice("Which queue should handle this request?", [
+            Option("access", "Account access and authentication support."),
+            Option("billing", "Billing, payments, and refunds."),
+        ]),
+    )
+```
+
+远程模型 ID 必须使用固定的 40 字符 Hugging Face revision。本地模型路径必须提供非空 revision 标签，以便记录结果来源。除 fastjev 管理的模型标识、revision、信任策略和 context 上限外，其他关键字参数会传给 `vllm.LLM`。
+
+一次 `decide_many` 会转换为一次批量 `LLM.generate` 调用。backend 渲染并验证与 Torch 路径相同的直接决策 prompt，只允许生成单 token 的答案槽位，并请求所有已声明槽位的 log probability。返回值是这些槽位的条件 next-token score，不需要解析生成文本。vLLM 会为每个问题生成一个受约束 token，因此每项结果记录一个 output token。
+
 ## 类型化问题
 
 所有问题都会编译为同一种 backend-neutral categorical request：
@@ -63,7 +96,7 @@ answers = jev.decide_many(state, {
 })
 ```
 
-`FastJev` 会串行调用 backend，避免并发使用同一个常驻模型。backend 可以对一次 `decide_many` 收到的请求进行 batching；当前内置直接 backend 仍按顺序评估这些请求。
+`FastJev` 会串行调用 backend，避免并发使用同一个常驻模型。vLLM backend 会批量处理一次 `decide_many` 收到的所有请求；内置 Torch 和 MLX backend 当前仍按顺序评估这些请求。
 
 ## Backend 协议
 
@@ -80,7 +113,7 @@ from fastjev.backends import (
 )
 
 
-class VLLMBackend:
+class RemoteBackend:
     @property
     def info(self) -> BackendInfo: ...
 
@@ -97,14 +130,14 @@ class VLLMBackend:
 ```python
 from fastjev import FastJev
 
-jev = FastJev(VLLMBackend(...))
+jev = FastJev(RemoteBackend(...))
 ```
 
 backend 负责模型加载、prompt 执行、batching 和资源清理。它必须按请求顺序为每个请求返回一个 `BackendResult`，并保持精确的请求 ID 与选项 ID。概率必须有限、非负且总质量大于零；`FastJev` 会对其归一化，并以 `BackendProtocolError` 拒绝格式错误的结果。
 
 backend 特定的选项限制写入 `BackendCapabilities`。领域类型本身不嵌入 Torch 内置上限，因此未来 backend 可以支持不同选项数量，而无需改变公共决策 API。
 
-内置实现为 `TorchBackend` 和 `MLXBackend`。`FastJev.from_pretrained` 刻意只作为 Torch 便利入口；其他 runtime 仍通过显式依赖注入 backend 接入。
+内置实现包括 `TorchBackend`、`MLXBackend` 和 `VLLMBackend`。`FastJev.from_pretrained` 继续作为 Torch 便利入口；其他 runtime 通过显式依赖注入接入。
 
 ## 结果语义
 
