@@ -1,0 +1,139 @@
+# Python SDK
+
+[English](SDK.md) | 简体中文
+
+`FastJev` 是稳定的决策接口。它持有一个常驻 `ScoringBackend`，在推理前验证类型化问题，并将 backend 结果转换为包含概率、用量、计时、来源和不确定性元数据的类型化决策。
+
+## 加载内置 Torch backend
+
+使用内置 CUDA 路径时，安装项目及 Torch 依赖。第三方 backend 可以只安装无依赖的核心包。
+
+```bash
+pip install -e '.[torch]'
+```
+
+`from_pretrained` 是直接 logits Torch/CUDA backend 的便利构造器：
+
+```python
+from fastjev import Choice, FastJev, Option
+
+jev = FastJev.from_pretrained(
+    "Qwen/Qwen3.5-4B",
+    revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+)
+
+result = jev.decide(
+    state={"message": "The customer cannot access the account."},
+    question=Choice(
+        "Which queue should handle this request?",
+        [
+            Option("access", "Account access and authentication support."),
+            Option("billing", "Billing, payments, and refunds."),
+        ],
+    ),
+)
+
+print(result.value)
+print(result.probabilities)
+jev.close()
+```
+
+当 engine 生命周期有明确作用域时，可将 `FastJev` 用作 context manager。关闭 engine 会关闭 backend，并拒绝后续决策；内置 backend 会释放模型与 tokenizer 引用，但不修改全局 accelerator 状态。
+
+## 类型化问题
+
+所有问题都会编译为同一种 backend-neutral categorical request：
+
+- `Choice` 返回获胜选项的稳定 ID。
+- `Boolean` 返回 `True` 或 `False`。
+- `Score` 返回按概率加权的数值，并通过 `selected` 暴露获胜 level。
+
+`decide_many` 接受以稳定问题 ID 为键的 mapping，并通过一次 backend 调用提交所有问题：
+
+```python
+from fastjev import Boolean, Level, Score
+
+answers = jev.decide_many(state, {
+    "urgent": Boolean("Does this require immediate action?"),
+    "severity": Score("How severe is it?", [
+        Level(0, "Minor"),
+        Level(1, "Degraded"),
+        Level(2, "Blocking"),
+    ]),
+})
+```
+
+`FastJev` 会串行调用 backend，避免并发使用同一个常驻模型。backend 可以对一次 `decide_many` 收到的请求进行 batching；当前内置直接 backend 仍按顺序评估这些请求。
+
+## Backend 协议
+
+engine 不导入 Torch、MLX、Transformers 或 vLLM，只依赖可在运行时检查的 `ScoringBackend` 协议：
+
+```python
+from typing import Sequence
+
+from fastjev.backends import (
+    BackendCapabilities,
+    BackendInfo,
+    BackendRequest,
+    BackendResult,
+)
+
+
+class VLLMBackend:
+    @property
+    def info(self) -> BackendInfo: ...
+
+    @property
+    def capabilities(self) -> BackendCapabilities: ...
+
+    def score(self, requests: Sequence[BackendRequest]) -> Sequence[BackendResult]: ...
+
+    def close(self) -> None: ...
+```
+
+直接注入实现：
+
+```python
+from fastjev import FastJev
+
+jev = FastJev(VLLMBackend(...))
+```
+
+backend 负责模型加载、prompt 执行、batching 和资源清理。它必须按请求顺序为每个请求返回一个 `BackendResult`，并保持精确的请求 ID 与选项 ID。概率必须有限、非负且总质量大于零；`FastJev` 会对其归一化，并以 `BackendProtocolError` 拒绝格式错误的结果。
+
+backend 特定的选项限制写入 `BackendCapabilities`。领域类型本身不嵌入 Torch 内置上限，因此未来 backend 可以支持不同选项数量，而无需改变公共决策 API。
+
+内置实现为 `TorchBackend` 和 `MLXBackend`。`FastJev.from_pretrained` 刻意只作为 Torch 便利入口；其他 runtime 仍通过显式依赖注入 backend 接入。
+
+## 结果语义
+
+每个 `Decision` 都提供：
+
+- `value` 和 `selected`；
+- 完整 `probabilities` mapping；
+- 输入/输出 token `usage`；
+- backend 提供时的 `timing`；
+- 模型、revision、backend、prompt version 和概率状态 `provenance`；
+- `uncertainty` 中的归一化分布熵。
+
+分布以声明的选项为条件。`uncertainty.normalized_entropy` 从尖锐分布的零变化到均匀分布的一，且 `uncertainty.calibrated` 为 `False`。在自动执行重要操作前，请在部署工作负载上验证阈值。
+
+## System One 兼容层
+
+System One 是适配器，不是 SDK 的领域模型：
+
+```python
+from fastjev import SystemOneAdapter
+from fastjev.http import create_app
+
+service = SystemOneAdapter(
+    jev,
+    served_model="fastjev-qwen3.5-4b",
+    description="fastjev direct option-logit baseline",
+    release_date="2026-09-18",
+)
+app = create_app(service)
+```
+
+适配器将 `noul`、`choice` 和 `score` 请求映射到同一个 `FastJev` engine。HTTP 边界、TypeSafe 命名和 vendor-compatible wire shape 都不会进入 backend 协议。

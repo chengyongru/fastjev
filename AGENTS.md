@@ -1,7 +1,7 @@
 # Repository instructions
 
 - Format every commit message according to Conventional Commits: `<type>[optional scope]: <description>`. Keep the description short and imperative.
-- Run commands from the repository root in an isolated environment installed with `pip install -e '.[test]'`.
+- Run commands from the repository root in an isolated environment installed with `pip install -e '.[test,torch]'`.
 - Validate changes with `pytest -q`, `(cd results/raw && sha256sum -c SHA256SUMS)`, and `python benchmarks/verify_published.py`.
 - Benchmark outputs are create-only. Use a new output path and expose exactly one CUDA GPU per scorer process.
 - Do not change headline claims or `results/phase1-summary.json` without committing the supporting row-level evidence, regenerating the relevant raw report, updating `results/raw/SHA256SUMS`, and updating the method/results text.
