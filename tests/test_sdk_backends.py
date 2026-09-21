@@ -1,8 +1,11 @@
+import json
+
 import pytest
 
 from fastjev import BackendOption, BackendRequest
 from fastjev.backends import MLXBackend, TorchBackend
 from fastjev.errors import InputTooLongError, ModelLoadError
+from semif_phase1 import mlx_backend
 
 
 METADATA = {"source": "fixture/model", "revision": "fixture-revision"}
@@ -89,3 +92,23 @@ def test_torch_backend_reports_its_optional_dependency(monkeypatch):
     monkeypatch.setattr("fastjev.backends.torch.load_causal_model", missing)
     with pytest.raises(ModelLoadError, match=r"fastjev\[torch\]"):
         TorchBackend.from_pretrained("fixture/model", "fixture-revision")
+
+
+def test_mlx_backend_accepts_only_the_validated_mlx_lm_source(monkeypatch):
+    class Distribution:
+        def __init__(self, commit):
+            self.commit = commit
+
+        def read_text(self, _name):
+            return json.dumps({"vcs_info": {"commit_id": self.commit}})
+
+    monkeypatch.setattr(
+        mlx_backend, "distribution", lambda _name: Distribution(mlx_backend.MLX_LM_COMMIT)
+    )
+    assert mlx_backend._validated_mlx_lm_source()["vcs_info"]["commit_id"] == (
+        mlx_backend.MLX_LM_COMMIT
+    )
+
+    monkeypatch.setattr(mlx_backend, "distribution", lambda _name: Distribution("older"))
+    with pytest.raises(RuntimeError, match=mlx_backend.MLX_LM_COMMIT):
+        mlx_backend._validated_mlx_lm_source()

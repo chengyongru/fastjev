@@ -36,7 +36,14 @@ Jev 是 TypeSafe 面向运行时定义语义决策的闭源服务。本项目使
 
 ## SDK 快速开始
 
-**Apple Silicon：** 在 macOS arm64 上使用原生 [MLX 后端](docs/MLX.zh-CN.md)，支持直接评分、串行前缀复用和并行共享状态决策。安装 `pip install -e '.[mlx]'`，并在评分命令中加入 `--backend mlx`。
+**Apple Silicon：** 在 macOS arm64 上使用原生 [MLX 后端](docs/MLX.zh-CN.md)，支持直接评分、串行前缀复用和并行共享状态决策。在 MLX-LM 正式发布所需的 normalization 修复前，需要在安装 MLX extra 时显式安装已验证的源码 revision：
+
+```bash
+pip install -e '.[mlx]' \
+  'mlx-lm @ git+https://github.com/ml-explore/mlx-lm.git@a63e24c389382619eb6d9af656e3b46024be217a'
+```
+
+然后在评分命令中加入 `--backend mlx`。
 
 CUDA 路径需要 Python 3.10+，以及一块能容纳 4B BF16 模型的 GPU：
 
