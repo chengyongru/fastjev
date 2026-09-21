@@ -1,4 +1,8 @@
-<h1 align="center">FastJev</h1>
+<p align="center">
+  <img src="./assets/fastjev-logo.svg"
+       width="420"
+       alt="FastJev" />
+</p>
 
 <div align="center">
 
