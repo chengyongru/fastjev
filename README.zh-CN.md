@@ -36,7 +36,7 @@ Jev 是 TypeSafe 面向运行时定义语义决策的闭源服务。本项目使
 
 ## SDK 快速开始
 
-**Apple Silicon：** 在 macOS arm64 上使用原生 [MLX 后端](docs/MLX.zh-CN.md)，支持直接评分、串行前缀复用和并行共享状态决策。安装 `pip install -e '.[test,mlx]'`，并在评分命令中加入 `--backend mlx`。
+**Apple Silicon：** 在 macOS arm64 上使用原生 [MLX 后端](docs/MLX.zh-CN.md)，支持直接评分、串行前缀复用和并行共享状态决策。安装 `pip install -e '.[mlx]'`，并在评分命令中加入 `--backend mlx`。
 
 CUDA 路径需要 Python 3.10+，以及一块能容纳 4B BF16 模型的 GPU：
 
@@ -44,36 +44,32 @@ CUDA 路径需要 Python 3.10+，以及一块能容纳 4B BF16 模型的 GPU：
 python -m venv .venv
 . .venv/bin/activate
 export HF_HOME=/path/to/large-drive/huggingface
-pip install -e '.[test]'
+pip install -e '.[torch]'
 ```
 
-让模型常驻内存，并直接从 Python 对运行时定义的决策进行评分：
+让 backend 常驻内存，并通过类型化 SDK 对运行时定义的决策进行评分：
 
 ```python
-from fastjev import load_causal_model, score_direct
+from fastjev import Choice, FastJev, Option
 
-model, tokenizer, metadata = load_causal_model(
+jev = FastJev.from_pretrained(
     "Qwen/Qwen3.5-4B",
-    "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
 )
-result = score_direct(
-    model,
-    tokenizer,
-    {
-        "id": "route-1",
-        "state": "Customer cannot access an account after a password reset.",
-        "question": "Which queue should handle this request?",
-        "options": [
-            {"id": "access", "description": "Account access support."},
-            {"id": "billing", "description": "Billing support."},
-        ],
-    },
-    metadata,
+result = jev.decide(
+    state="Customer cannot access an account after a password reset.",
+    question=Choice("Which queue should handle this request?", [
+        Option("access", "Account access support."),
+        Option("billing", "Billing support."),
+    ]),
 )
-print(result["probabilities"])
+print(result.value, result.probabilities)
+jev.close()
 ```
 
-SDK 还导出 `SystemOneService`，可在进程内使用已记录的 System One 请求和响应结构。只有需要 HTTP 边界时，才安装 `.[api]` 并从 `fastjev.http` 导入 `create_app`。
+`FastJev` 只依赖 `ScoringBackend` 协议。内置 Torch 和 MLX 实现都是适配器；未来 vLLM 或远程实现可以直接注入，而无需改变 `Choice`、`Boolean`、`Score` 或结果类型。batching、结果语义、backend 合约和 System One 适配方式见 [Python SDK 指南](docs/SDK.zh-CN.md)。
+
+只有需要 HTTP 边界时，才安装 `.[api]` 并从 `fastjev.http` 导入 `create_app`。
 
 ## CLI 与服务封装
 
@@ -186,6 +182,7 @@ Jev 数值读取自 TypeSafe 发布记录；我们没有调用在线 Jev 端点�
 
 ## 中文文档
 
+- [Python SDK](docs/SDK.zh-CN.md) — 类型化决策、backend 协议、batching 和结果语义
 - [结果](docs/RESULTS.zh-CN.md) — 质量、速度、扰动测试和声明边界
 - [方法](docs/METHOD.zh-CN.md) — 冻结 prompt、指标和计时范围
 - [复现](docs/REPRODUCE.zh-CN.md) — 精确环境、固定命令、扰动测试和验证

@@ -38,7 +38,7 @@ This baseline reads typed option probabilities directly from a model. No answer 
 
 **Apple Silicon:** use the native [MLX backend](docs/MLX.md) for direct scoring,
 serial prefix reuse, and parallel shared-state decisions on macOS arm64.
-Install `pip install -e '.[test,mlx]'` and add `--backend mlx` to the scorer command.
+Install `pip install -e '.[mlx]'` and add `--backend mlx` to the scorer command.
 
 Python 3.10+, CUDA, and a GPU that can hold a 4B BF16 model:
 
@@ -46,36 +46,32 @@ Python 3.10+, CUDA, and a GPU that can hold a 4B BF16 model:
 python -m venv .venv
 . .venv/bin/activate
 export HF_HOME=/path/to/large-drive/huggingface
-pip install -e '.[test]'
+pip install -e '.[torch]'
 ```
 
-Keep the loaded model resident and score runtime-defined decisions directly from Python:
+Keep the backend resident and score runtime-defined decisions through the typed SDK:
 
 ```python
-from fastjev import load_causal_model, score_direct
+from fastjev import Choice, FastJev, Option
 
-model, tokenizer, metadata = load_causal_model(
+jev = FastJev.from_pretrained(
     "Qwen/Qwen3.5-4B",
-    "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
 )
-result = score_direct(
-    model,
-    tokenizer,
-    {
-        "id": "route-1",
-        "state": "Customer cannot access an account after a password reset.",
-        "question": "Which queue should handle this request?",
-        "options": [
-            {"id": "access", "description": "Account access support."},
-            {"id": "billing", "description": "Billing support."},
-        ],
-    },
-    metadata,
+result = jev.decide(
+    state="Customer cannot access an account after a password reset.",
+    question=Choice("Which queue should handle this request?", [
+        Option("access", "Account access support."),
+        Option("billing", "Billing support."),
+    ]),
 )
-print(result["probabilities"])
+print(result.value, result.probabilities)
+jev.close()
 ```
 
-The SDK also exports `SystemOneService` for in-process use of the documented System One request and response shape. Install `.[api]` and import `create_app` from `fastjev.http` only when an HTTP boundary is needed.
+`FastJev` depends only on the `ScoringBackend` protocol. The built-in Torch and MLX implementations are adapters; a future vLLM or remote implementation can be injected without changing `Choice`, `Boolean`, `Score`, or result types. See the [Python SDK guide](docs/SDK.md) for batching, result semantics, backend contracts, and System One adaptation.
+
+Install `.[api]` and import `create_app` from `fastjev.http` only when an HTTP boundary is needed.
 
 ## CLI and service wrappers
 
@@ -189,6 +185,7 @@ Returned probabilities are conditional on the supplied options. Calibrate and va
 
 ## Documentation
 
+- [Python SDK](docs/SDK.md) — typed decisions, backend protocol, batching, and result semantics
 - [Results](docs/RESULTS.md) — quality, speed, perturbations, and claim boundaries
 - [Method](docs/METHOD.md) — frozen prompts, metrics, and timing scope
 - [Reproduce](docs/REPRODUCE.md) — exact environment, pinned commands, perturbations, and verification

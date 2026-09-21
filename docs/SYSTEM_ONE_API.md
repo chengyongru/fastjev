@@ -15,7 +15,7 @@ The implemented contract follows the public [TypeSafe API reference](https://doc
 Install the API extra in the same isolated environment as fastjev:
 
 ```bash
-pip install -e '.[api]'
+pip install -e '.[api,torch]'
 ```
 
 Keep the default loopback binding for a local unauthenticated service:
