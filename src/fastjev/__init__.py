@@ -1,5 +1,7 @@
 """Public Python SDK for backend-neutral semantic decisions."""
 
+from semif_phase1 import __version__
+
 from .backends import (
     BackendCapabilities,
     BackendInfo,
@@ -84,4 +86,5 @@ __all__ = [
     "request_rows",
     "response_from_results",
     "score_direct",
+    "__version__",
 ]

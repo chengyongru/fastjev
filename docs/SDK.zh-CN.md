@@ -9,7 +9,7 @@
 使用内置 CUDA 路径时，安装项目及 Torch 依赖。第三方 backend 可以只安装无依赖的核心包。
 
 ```bash
-pip install -e '.[torch]'
+pip install 'fastjev[torch]'
 ```
 
 `from_pretrained` 是直接 logits Torch/CUDA backend 的便利构造器：
@@ -45,7 +45,7 @@ jev.close()
 使用本地 GGUF（包括桌面模型管理器下载的文件）或 Hugging Face 上托管的 GGUF 时，安装可选的 llama.cpp Python binding：
 
 ```bash
-pip install -e '.[llama-cpp]'
+pip install 'fastjev[llama-cpp]'
 ```
 
 `LlamaCppBackend` 会直接读取 GGUF 内置的 chat template 和最后位置 logits，不启动也不依赖其他服务。缺少安全 chat template 或无法将答案槽位编码为精确单 token 的 GGUF 会被拒绝：
@@ -87,7 +87,7 @@ backend = LlamaCppBackend.from_pretrained(
 在受支持的 CUDA 主机上安装独立固定版本的 vLLM runtime：
 
 ```bash
-pip install -e '.[vllm]'
+pip install 'fastjev[vllm]'
 ```
 
 显式构造 backend，再注入同一个 `FastJev` 接口：

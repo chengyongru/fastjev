@@ -41,12 +41,10 @@ FastJev 把 Jev 自部署收敛为标准 Python 工作流。SDK 负责加载模�
 默认后端需要 Python 3.10+、CUDA 和一块可见 GPU。Qwen3.5-4B 源 checkpoint 占用约 9 GB 磁盘。历史 [RTX 5090 SDK 冒烟测试](https://github.com/chengyongru/fastjev/pull/5)测得峰值 GPU 分配为 7.891 GiB。
 
 ```bash
-git clone https://github.com/chengyongru/fastjev.git
-cd fastjev
 python -m venv .venv
 . .venv/bin/activate
 export HF_HOME=/path/to/large-drive/huggingface
-pip install -e '.[torch]'
+pip install 'fastjev[torch]'
 ```
 
 首次调用会自动从 Hugging Face 下载固定 revision 并缓存到 `HF_HOME`。
@@ -74,7 +72,17 @@ print(result.provenance)
 
 远程模型使用不可变的 40 字符 Hugging Face revision。本地模型目录使用描述性 revision 标签记录结果来源。
 
-使用本地或 Hugging Face 托管的 GGUF 文件时安装 `.[llama-cpp]`。[Python SDK 指南](docs/SDK.zh-CN.md)介绍 llama.cpp 的设置与来源记录。
+使用本地或 Hugging Face 托管的 GGUF 文件时安装 `fastjev[llama-cpp]`。[Python SDK 指南](docs/SDK.zh-CN.md)介绍 llama.cpp 的设置与来源记录。
+
+### 安装最新源码
+
+需要运行 `main` 的最新代码时使用可编辑安装。
+
+```bash
+git clone https://github.com/chengyongru/fastjev.git
+cd fastjev
+pip install -e '.[torch]'
+```
 
 ## 实测结果
 
@@ -116,13 +124,13 @@ print(result.provenance)
 
 | Runtime | 安装 | 适用场景 |
 |---|---|---|
-| PyTorch/CUDA | `pip install -e '.[torch]'` | 默认直接 logits 评分 |
-| vLLM/CUDA | `pip install -e '.[vllm]'` | 批量常驻服务 |
+| PyTorch/CUDA | `pip install 'fastjev[torch]'` | 默认直接 logits 评分 |
+| vLLM/CUDA | `pip install 'fastjev[vllm]'` | 批量常驻服务 |
 | MLX/Apple Silicon | 查看 [MLX 指南](docs/MLX.zh-CN.md) | 原生 macOS arm64 推理 |
-| llama.cpp/GGUF | `pip install -e '.[llama-cpp]'` | 本地或 Hugging Face 托管的 GGUF 文件 |
+| llama.cpp/GGUF | `pip install 'fastjev[llama-cpp]'` | 本地或 Hugging Face 托管的 GGUF 文件 |
 | WebGPU/GGUF | 打开[浏览器 demo](webgpu-demo/index.html) | 浏览器本地推理 |
 
-使用 `fastjev-score` 处理 JSONL。安装 `.[api]` 并运行 `fastjev-serve`，即可提供 `POST /v1/systemone` 和 `GET /v1/models`。[SDK 指南](docs/SDK.zh-CN.md)介绍 batching 和自定义后端。[HTTP 指南](docs/SYSTEM_ONE_API.zh-CN.md)介绍服务配置、认证与兼容边界。
+使用 `fastjev-score` 处理 JSONL。安装 `fastjev[api,torch]` 并运行 `fastjev-serve`，即可提供 `POST /v1/systemone` 和 `GET /v1/models`。[SDK 指南](docs/SDK.zh-CN.md)介绍 batching 和自定义后端。[HTTP 指南](docs/SYSTEM_ONE_API.zh-CN.md)介绍服务配置、认证与兼容边界。
 
 ## 文档
 

@@ -9,7 +9,7 @@
 Install the project with the Torch dependencies when using the built-in CUDA path. A third-party backend can install the dependency-free core package instead.
 
 ```bash
-pip install -e '.[torch]'
+pip install 'fastjev[torch]'
 ```
 
 `from_pretrained` is a convenience constructor for the direct-logit Torch/CUDA backend:
@@ -45,7 +45,7 @@ Use `FastJev` as a context manager when its lifetime is scoped. Closing an engin
 Install the optional llama.cpp Python bindings for a local GGUF file, including one downloaded through a desktop model manager, or for a GGUF hosted on Hugging Face:
 
 ```bash
-pip install -e '.[llama-cpp]'
+pip install 'fastjev[llama-cpp]'
 ```
 
 `LlamaCppBackend` reads the model's embedded chat template and last-position logits directly. It does not start or require another server, and it rejects GGUF files without a safe chat template or exact single-token answer slots:
@@ -87,7 +87,7 @@ The explicit filename prevents fastjev from silently choosing among a repository
 Install the separately pinned vLLM runtime on a supported CUDA host:
 
 ```bash
-pip install -e '.[vllm]'
+pip install 'fastjev[vllm]'
 ```
 
 Construct the backend explicitly and inject it into the same `FastJev` interface:
