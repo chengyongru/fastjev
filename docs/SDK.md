@@ -73,6 +73,22 @@ Remote model IDs require a pinned 40-character Hugging Face revision. Local mode
 
 One `decide_many` call becomes one batched `LLM.generate` call. The backend renders and validates the same direct decision prompts as the Torch path, permits only the single-token answer slots, and requests log probabilities for every declared slot. It then returns their conditional next-token scores without parsing generated text. vLLM generates one constrained token per question, so each result reports one output token.
 
+### WSL compatibility
+
+vLLM 0.29.0's V2 model runner requires CUDA Unified Virtual Addressing (UVA), which may be unavailable through WSL. If startup reports `UVA is not available`, select the V1 runner before Python imports vLLM:
+
+```bash
+export VLLM_USE_V2_MODEL_RUNNER=0
+```
+
+If FlashInfer sampling JIT reports incompatible CUDA compiler and toolkit headers, use vLLM's native sampler:
+
+```bash
+export VLLM_USE_FLASHINFER_SAMPLER=0
+```
+
+These switches select vLLM implementations; they do not change the fastjev backend contract or decision semantics.
+
 ## Typed questions
 
 All questions compile to one backend-neutral categorical request:
