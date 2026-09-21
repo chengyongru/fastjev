@@ -38,7 +38,15 @@ This baseline reads typed option probabilities directly from a model. No answer 
 
 **Apple Silicon:** use the native [MLX backend](docs/MLX.md) for direct scoring,
 serial prefix reuse, and parallel shared-state decisions on macOS arm64.
-Install `pip install -e '.[mlx]'` and add `--backend mlx` to the scorer command.
+Until MLX-LM publishes the required normalization fix, install the validated
+source revision explicitly alongside the MLX extra:
+
+```bash
+pip install -e '.[mlx]' \
+  'mlx-lm @ git+https://github.com/ml-explore/mlx-lm.git@a63e24c389382619eb6d9af656e3b46024be217a'
+```
+
+Then add `--backend mlx` to the scorer command.
 
 Python 3.10+, CUDA, and a GPU that can hold a 4B BF16 model:
 

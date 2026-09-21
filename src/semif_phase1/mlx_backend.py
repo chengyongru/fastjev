@@ -21,6 +21,21 @@ from .shared import _state_prefix
 
 
 DEFAULT_CACHE_LIMIT_MIB = 256
+MLX_LM_COMMIT = "a63e24c389382619eb6d9af656e3b46024be217a"
+MLX_LM_REQUIREMENT = f"mlx-lm @ git+https://github.com/ml-explore/mlx-lm.git@{MLX_LM_COMMIT}"
+
+
+def _validated_mlx_lm_source():
+    """Return provenance only for the MLX-LM revision validated by fastjev."""
+    raw = distribution("mlx-lm").read_text("direct_url.json")
+    source = json.loads(raw) if raw else None
+    vcs_info = source.get("vcs_info", {}) if isinstance(source, dict) else {}
+    if vcs_info.get("commit_id") != MLX_LM_COMMIT:
+        raise RuntimeError(
+            "The MLX backend requires the validated MLX-LM revision. Install it with: "
+            f"pip install '{MLX_LM_REQUIREMENT}'"
+        )
+    return source
 
 
 def load_model(source: str, revision: str, bits: int | None = None, *,
@@ -46,7 +61,11 @@ def load_model(source: str, revision: str, bits: int | None = None, *,
         from mlx.utils import tree_flatten
         from mlx_lm import load
     except ImportError as error:
-        raise RuntimeError("Install the MLX extra: pip install -e '.[test,mlx]'") from error
+        raise RuntimeError(
+            "Install the MLX runtime with: "
+            f"pip install 'fastjev[mlx]' '{MLX_LM_REQUIREMENT}'"
+        ) from error
+    mlx_lm_source = _validated_mlx_lm_source()
     from huggingface_hub import snapshot_download
 
     if not mx.metal.is_available():
@@ -83,7 +102,7 @@ def load_model(source: str, revision: str, bits: int | None = None, *,
         "source": source, "revision": revision, "backend": "mlx",
         "mlx_version": version("mlx"), "mlx_lm_version": version("mlx-lm"),
         "transformers_version": version("transformers"),
-        "mlx_lm_source": json.loads(distribution("mlx-lm").read_text("direct_url.json") or "null"),
+        "mlx_lm_source": mlx_lm_source,
         "allocator_cache_limit_bytes": cache_limit,
         "dtype": sorted({str(value.dtype) for _, value in tree_flatten(model.parameters())}),
         "quantization": {"bits": bits, "group_size": 64, "mode": "affine"} if bits else config.get("quantization"),

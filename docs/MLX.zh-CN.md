@@ -11,7 +11,8 @@
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e '.[test,mlx]'
+pip install -e '.[test,mlx]' \
+  'mlx-lm @ git+https://github.com/ml-explore/mlx-lm.git@a63e24c389382619eb6d9af656e3b46024be217a'
 
 fastjev-score --backend mlx --mode direct \
   --model Qwen/Qwen3.5-4B \
@@ -20,7 +21,7 @@ fastjev-score --backend mlx --mode direct \
   --output results-mlx-direct.jsonl
 ```
 
-首次运行会将固定 checkpoint 下载到 Hugging Face 缓存。权重占用约 9 GB 磁盘空间，GPU 执行还需要额外内存。源 checkpoint 包含视觉权重，MLX-LM 原生 sanitizer 会将它们排除在文本模型之外。基线保留源精度（BF16，部分参数为 FP32）。runtime 固定为 MLX 0.32.2，以及 commit `a63e24c389382619eb6d9af656e3b46024be217a` 的 MLX-LM（package version 0.32.0）。该源 revision 包含上游 Qwen recurrent q/k normalization 修复；0.31.3 版本对 L2 epsilon 的应用不正确。安装过程需要 Git。每条预测都会记录已安装 runtime 的源 commit。
+首次运行会将固定 checkpoint 下载到 Hugging Face 缓存。权重占用约 9 GB 磁盘空间，GPU 执行还需要额外内存。源 checkpoint 包含视觉权重，MLX-LM 原生 sanitizer 会将它们排除在文本模型之外。基线保留源精度（BF16，部分参数为 FP32）。runtime 固定为 MLX 0.32.2，以及 commit `a63e24c389382619eb6d9af656e3b46024be217a` 的 MLX-LM（package version 0.32.0）。该源 revision 包含上游 Qwen recurrent q/k normalization 修复；0.31.3 版本对 L2 epsilon 的应用不正确。PyPI 会拒绝在已发布包的元数据中包含直接 URL 依赖，因此 `mlx` extra 安装 MLX，上面的命令则单独提供已验证的 MLX-LM revision。不要替换为 MLX-LM 0.31.3。安装过程需要 Git；MLX 后端会拒绝未包含已验证源码 commit 的 MLX-LM 安装。每条预测都会记录已安装 runtime 的源 commit。
 
 使用 `--mode serial` 复用连续且完全相同的状态。所有输入行具有完全相同状态且决策 ID 唯一时，可使用 `--mode shared`。shared 模式在一个 batch 中评估所有问题；内存占用随 batch size 和后缀长度增长。输入限制强制执行，不做截断。
 

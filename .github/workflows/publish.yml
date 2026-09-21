@@ -1,6 +1,8 @@
 name: Publish to PyPI
 
 on:
+  pull_request:
+    branches: [main]
   release:
     types: [published]
   workflow_dispatch:
@@ -76,6 +78,9 @@ jobs:
 
       - name: Check distributions
         run: python -m twine check dist/*
+
+      - name: Check PyPI dependency metadata
+        run: python scripts/verify_distribution_metadata.py dist/*
 
       - name: Store distributions
         uses: actions/upload-artifact@v5

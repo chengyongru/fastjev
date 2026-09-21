@@ -12,7 +12,8 @@ Use an isolated Python environment on an Apple Silicon Mac with Metal available:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e '.[test,mlx]'
+pip install -e '.[test,mlx]' \
+  'mlx-lm @ git+https://github.com/ml-explore/mlx-lm.git@a63e24c389382619eb6d9af656e3b46024be217a'
 
 fastjev-score --backend mlx --mode direct \
   --model Qwen/Qwen3.5-4B \
@@ -28,8 +29,12 @@ excludes from the text model. The baseline preserves source precision (BF16
 with some FP32 parameters). Runtime pins are MLX 0.32.2 and MLX-LM at
 `a63e24c389382619eb6d9af656e3b46024be217a` (package version 0.32.0).
 The source pin includes the upstream Qwen recurrent q/k normalization fix;
-release 0.31.3 applies the L2 epsilon incorrectly. Install requires Git.
-Each prediction records the installed runtime's source commit.
+release 0.31.3 applies the L2 epsilon incorrectly. PyPI rejects direct URL
+dependencies in published package metadata, so the `mlx` extra installs MLX
+while the command above supplies the validated MLX-LM revision separately.
+Do not substitute MLX-LM 0.31.3. Installation requires Git, and the backend
+rejects an MLX-LM installation without the validated source commit. Each
+prediction records the installed runtime's source commit.
 
 Use `--mode serial` to reuse consecutive identical states. Use `--mode shared`
 when every row in the input has the same exact state and a unique decision ID.
