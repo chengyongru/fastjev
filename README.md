@@ -6,10 +6,6 @@
 
 *An independently maintained fork of [TheoLeeCJ/SemIf](https://github.com/TheoLeeCJ/SemIf).*
 
-[![Measured replay: typed decisions appear together while JSON streams token by token](demo/assets/semif-phase1-replay.gif)](demo/index.html)
-
-*Same frozen 4B model · same state · same 21 questions · measured separately, aligned at t=0 in the replay*
-
 </div>
 
 > **Fork lineage and independence.** fastjev preserves the Git history and MIT license of [SemIf](https://github.com/TheoLeeCJ/SemIf), formerly OpenJev, while following an independent roadmap. fastjev is not affiliated with or endorsed by TheoLeeCJ, TypeSafe, or Jev. Jev, TypeSafe, and other names and marks remain the property of their respective owners.
