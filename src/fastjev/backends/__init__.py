@@ -11,6 +11,7 @@ from .base import (
 )
 from .mlx import MLXBackend
 from .torch import TorchBackend
+from .vllm import VLLMBackend
 
 __all__ = [
     "BackendCapabilities",
@@ -22,4 +23,5 @@ __all__ = [
     "MLXBackend",
     "ScoringBackend",
     "TorchBackend",
+    "VLLMBackend",
 ]

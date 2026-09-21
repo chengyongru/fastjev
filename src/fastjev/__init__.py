@@ -9,11 +9,13 @@ from .backends import (
     MLXBackend,
     ScoringBackend,
     TorchBackend,
+    VLLMBackend,
 )
 from .client import FastJev
 from .compat import SystemOneAdapter
 from .errors import (
     BackendProtocolError,
+    BackendExecutionError,
     FastJevError,
     InputTooLongError,
     ModelLoadError,
@@ -46,6 +48,7 @@ from semif_phase1.system_one import (
 
 __all__ = [
     "BackendCapabilities",
+    "BackendExecutionError",
     "BackendInfo",
     "BackendOption",
     "BackendProtocolError",
@@ -73,6 +76,7 @@ __all__ = [
     "Uncertainty",
     "Usage",
     "ValidationError",
+    "VLLMBackend",
     "distribution_confidence",
     "load_causal_model",
     "request_rows",

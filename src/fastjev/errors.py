@@ -17,5 +17,9 @@ class ModelLoadError(FastJevError):
     """A backend could not load its configured model."""
 
 
+class BackendExecutionError(FastJevError):
+    """A backend failed while executing an otherwise valid request."""
+
+
 class BackendProtocolError(FastJevError):
     """A backend returned data that violates the scoring protocol."""

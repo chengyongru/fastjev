@@ -69,7 +69,7 @@ print(result.value, result.probabilities)
 jev.close()
 ```
 
-`FastJev` depends only on the `ScoringBackend` protocol. The built-in Torch and MLX implementations are adapters; a future vLLM or remote implementation can be injected without changing `Choice`, `Boolean`, `Score`, or result types. See the [Python SDK guide](docs/SDK.md) for batching, result semantics, backend contracts, and System One adaptation.
+`FastJev` depends only on the `ScoringBackend` protocol. The built-in Torch, MLX, and optional vLLM implementations are adapters, so changing the runtime does not change `Choice`, `Boolean`, `Score`, or result types. Install `.[vllm]` for batched CUDA inference through vLLM. See the [Python SDK guide](docs/SDK.md) for setup, batching, result semantics, backend contracts, and System One adaptation.
 
 Install `.[api]` and import `create_app` from `fastjev.http` only when an HTTP boundary is needed.
 

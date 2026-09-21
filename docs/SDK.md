@@ -40,6 +40,39 @@ jev.close()
 
 Use `FastJev` as a context manager when its lifetime is scoped. Closing an engine closes its backend and rejects later decisions; built-in backends release their model and tokenizer references without modifying global accelerator state.
 
+## Load the optional vLLM backend
+
+Install the separately pinned vLLM runtime on a supported CUDA host:
+
+```bash
+pip install -e '.[vllm]'
+```
+
+Construct the backend explicitly and inject it into the same `FastJev` interface:
+
+```python
+from fastjev import Choice, FastJev, Option, VLLMBackend
+
+backend = VLLMBackend.from_pretrained(
+    "Qwen/Qwen3.5-4B",
+    revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    gpu_memory_utilization=0.8,
+)
+
+with FastJev(backend) as jev:
+    result = jev.decide(
+        {"message": "The customer cannot access the account."},
+        Choice("Which queue should handle this request?", [
+            Option("access", "Account access and authentication support."),
+            Option("billing", "Billing, payments, and refunds."),
+        ]),
+    )
+```
+
+Remote model IDs require a pinned 40-character Hugging Face revision. Local model paths require a nonempty revision label for result provenance. Additional keyword arguments are forwarded to `vllm.LLM`, except for the model identity, revision, trust policy, and context limit managed by fastjev.
+
+One `decide_many` call becomes one batched `LLM.generate` call. The backend renders and validates the same direct decision prompts as the Torch path, permits only the single-token answer slots, and requests log probabilities for every declared slot. It then returns their conditional next-token scores without parsing generated text. vLLM generates one constrained token per question, so each result reports one output token.
+
 ## Typed questions
 
 All questions compile to one backend-neutral categorical request:
@@ -63,7 +96,7 @@ answers = jev.decide_many(state, {
 })
 ```
 
-`FastJev` serializes calls into a backend so one resident model is not used concurrently. A backend may batch the requests received by one `decide_many` call. The built-in direct backends currently evaluate those requests in order.
+`FastJev` serializes calls into a backend so one resident model is not used concurrently. The vLLM backend batches all requests received by one `decide_many` call. The built-in Torch and MLX backends currently evaluate those requests in order.
 
 ## Backend protocol
 
@@ -80,7 +113,7 @@ from fastjev.backends import (
 )
 
 
-class VLLMBackend:
+class RemoteBackend:
     @property
     def info(self) -> BackendInfo: ...
 
@@ -97,14 +130,14 @@ Inject an implementation directly:
 ```python
 from fastjev import FastJev
 
-jev = FastJev(VLLMBackend(...))
+jev = FastJev(RemoteBackend(...))
 ```
 
 A backend owns model loading, prompt execution, batching, and resource cleanup. It must return one `BackendResult` per request, in request order, with the exact request ID and option IDs. Probabilities must be finite, nonnegative, and have positive total mass; `FastJev` normalizes them and rejects malformed results with `BackendProtocolError`.
 
 Backend-specific option limits belong in `BackendCapabilities`. The domain types themselves do not embed the built-in Torch limit, so a future backend may support a different number of options without changing the public decision API.
 
-Built-in implementations are available as `TorchBackend` and `MLXBackend`. `FastJev.from_pretrained` is intentionally only a Torch convenience; other runtimes remain explicit dependency-injected backends.
+Built-in implementations are available as `TorchBackend`, `MLXBackend`, and `VLLMBackend`. `FastJev.from_pretrained` remains a Torch convenience; other runtimes use explicit dependency injection.
 
 ## Result semantics
 
