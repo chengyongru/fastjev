@@ -201,7 +201,8 @@ temperature scaling. The [method guide](docs/METHOD.md) documents frozen prompts
 metrics, and timing scope. The [reproduction guide](docs/REPRODUCE.md) provides
 pinned environments and verification commands. The
 [benchmark bundle](benchmarks/README.md) contains fixtures, runners, and source
-selection. The [interactive replay](demo/index.html) and
+selection. The [interactive replay](demo/index.html),
+[verified Jev Ultrafast browser demo](demo/jev-ultrafast/README.md), and
 [WebGPU browser demo](webgpu-demo/index.html) provide visual ways to explore
 the project.
 
