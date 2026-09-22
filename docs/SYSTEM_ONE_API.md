@@ -85,8 +85,8 @@ When authentication is configured, also send `Authorization: Bearer $FASTJEV_API
 The adapter preserves the public wire shape, not Jev's model behavior:
 
 - The request `model` must equal the configured fastjev model ID. Jev aliases such as `jev-latest` are rejected instead of being impersonated.
-- fastjev currently supports 2-16 options for `choice`; TypeSafe documents up to 255.
-- `score` supports the documented 2-10 levels. `noul` and `choice` criteria may use strings, JSON objects, arrays, or `null`; structured content is rendered as JSON for the fastjev prompt.
+- fastjev accepts 1-16 options for `choice`; a singleton is returned deterministically with probability and confidence 1 without invoking the model. TypeSafe documents up to 255.
+- `score` supports the documented 2-10 levels. `noul` and `choice` criteria may use strings, JSON objects, arrays, or `null`; structured content is rendered as indented JSON for the fastjev prompt.
 - TypeSafe's SDK permits omitted or `null` instructions. The adapter supplies a type-specific generic question in that case; explicit instructions remain preferable because they define the intended decision boundary.
 - fastjev's default input limit is 4,096 tokens per converted question, with no truncation. TypeSafe documents a different context budget.
 - Choice and Score require a `confidence` field in the documented response. Because TypeSafe does not publish its exact statistic, the adapter returns `1 - normalized entropy` and identifies it as `one-minus-normalized-entropy` in the top-level `fastjev` extension. It is not numerically comparable to TypeSafe confidence.
