@@ -1,0 +1,194 @@
+{
+  "method": "per-workload post-hoc temperature scaling; single scalar; NLL-fit; monotone (argmax-invariant)",
+  "gold": "authored144.jsonl",
+  "predictions": "direct-authored144.jsonl",
+  "rows": 144,
+  "groups": 36,
+  "shipped_temperature": 1.2342236287881765,
+  "cv": {
+    "folds": 5,
+    "seed": 217,
+    "fold_temperatures": [
+      1.317798127260707,
+      1.0850986665262576,
+      1.1730794403380718,
+      1.329619059596085,
+      1.2544614394576952
+    ],
+    "fold_groups": {
+      "b51b300da2936decc6b7": 0,
+      "986d7eaba0c7e9738e79": 1,
+      "770c1607f0a11f88f81e": 2,
+      "e4cfd694c80e08d3e6a5": 3,
+      "ca2e0b043985fa49bcd2": 4,
+      "c979db7416b206c1eb09": 0,
+      "6dd193172b9240a04bf9": 1,
+      "a71a17a287f3d30db2aa": 2,
+      "20460d4ae0db46091e84": 3,
+      "2b0f8eda8903e38a47de": 4,
+      "f4bea3d3bcc01056740d": 0,
+      "f7403e39d6796072491c": 1,
+      "45f8ead2522a14384cdc": 2,
+      "6a06a2f278301c1412ee": 3,
+      "2797f8c23d05c0ee06b3": 4,
+      "c0cbeb97315307af8111": 0,
+      "056cc5b726d6e8300a77": 1,
+      "3ecec8e2c166e397ad07": 2,
+      "2c3a0cb61f7bae78739e": 3,
+      "928ebc7817a8f1cac3e4": 4,
+      "a060fd4621be415e9f1a": 0,
+      "2fdaa8a61e6e989dd866": 1,
+      "53b0770ec36835b81d3a": 2,
+      "e7798dab5f4f121cab77": 3,
+      "51b91ba31984c5939c1c": 4,
+      "ffd081ada3bd9be9207a": 0,
+      "428176cd8ad2c7a74eea": 1,
+      "d142f7fd0efa0eddc788": 2,
+      "85051ba3c30277824ebe": 3,
+      "3476d3f4f32290fe57c3": 4,
+      "42ed4cbfde7f2f64274b": 0,
+      "3200eb252d6737e03027": 1,
+      "389e65bf1ba709b84b12": 2,
+      "e3ce8ec496dbc9974f94": 3,
+      "01020a1eaf46ec2fba5d": 4,
+      "a5b234c2e4fb304f1071": 0
+    }
+  },
+  "accuracy_unchanged": 0.8055555555555556,
+  "ece_uncalibrated": {
+    "value": 0.0677704066952958,
+    "ci95": [
+      0.042679289892325764,
+      0.1306370417209154
+    ]
+  },
+  "ece_calibrated_out_of_fold": {
+    "value": 0.03841296293519647,
+    "ci95": [
+      0.032416215481706784,
+      0.10804487079195729
+    ]
+  },
+  "improvement_ci_separated": false,
+  "per_family_uncalibrated": {
+    "candidate_selection": {
+      "n": 48,
+      "ece": 0.12427287833394733
+    },
+    "evidence_interpretation": {
+      "n": 48,
+      "ece": 0.07018463935646566
+    },
+    "rule_application": {
+      "n": 48,
+      "ece": 0.06659429102843792
+    }
+  },
+  "per_family_calibrated_out_of_fold": {
+    "candidate_selection": {
+      "n": 48,
+      "ece": 0.13119818064958427
+    },
+    "evidence_interpretation": {
+      "n": 48,
+      "ece": 0.08334878069621096
+    },
+    "rule_application": {
+      "n": 48,
+      "ece": 0.07399541630380714
+    }
+  },
+  "reliability_bins_uncalibrated": [
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "n": 8,
+      "mean_confidence": 0.47747455187631827,
+      "accuracy": 0.125
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "n": 13,
+      "mean_confidence": 0.5592932834133377,
+      "accuracy": 0.46153846153846156
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "n": 5,
+      "mean_confidence": 0.6482291498136246,
+      "accuracy": 0.8
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "n": 17,
+      "mean_confidence": 0.7458168727805914,
+      "accuracy": 0.6470588235294118
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "n": 14,
+      "mean_confidence": 0.8499109580540644,
+      "accuracy": 0.6428571428571429
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "n": 87,
+      "mean_confidence": 0.9808256892388486,
+      "accuracy": 0.9770114942528736
+    }
+  ],
+  "reliability_bins_calibrated_out_of_fold": [
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "n": 10,
+      "mean_confidence": 0.4625465177034366,
+      "accuracy": 0.2
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "n": 15,
+      "mean_confidence": 0.5472331306464459,
+      "accuracy": 0.5333333333333333
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "n": 13,
+      "mean_confidence": 0.6684558900315316,
+      "accuracy": 0.6153846153846154
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "n": 11,
+      "mean_confidence": 0.7515485076721482,
+      "accuracy": 0.6363636363636364
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "n": 17,
+      "mean_confidence": 0.8422451511338521,
+      "accuracy": 0.8823529411764706
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "n": 78,
+      "mean_confidence": 0.9736062571742412,
+      "accuracy": 0.9743589743589743
+    }
+  ],
+  "caveats": [
+    "ECE at this n is high-variance; read the bootstrap intervals, not the point value.",
+    "A single scalar corrects over/under-confidence, not shape miscalibration within a family.",
+    "shipped_temperature is fit on all labeled rows; the out-of-fold ECE is the honest generalization estimate."
+  ]
+}

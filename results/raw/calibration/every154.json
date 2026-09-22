@@ -1,0 +1,168 @@
+{
+  "method": "per-workload post-hoc temperature scaling; single scalar; NLL-fit; monotone (argmax-invariant)",
+  "gold": "gold154.jsonl",
+  "predictions": "direct-every204.jsonl",
+  "rows": 154,
+  "groups": 24,
+  "shipped_temperature": 1.7086356884405622,
+  "cv": {
+    "folds": 5,
+    "seed": 217,
+    "fold_temperatures": [
+      1.8326134448434683,
+      1.7375062008646045,
+      1.8066328505581302,
+      1.430982815972796,
+      1.690198953767649
+    ],
+    "fold_groups": {
+      "every/company-brain/people/parental-leave.md": 0,
+      "every/judge-grid/polite_nonanswer": 1,
+      "every/code-rag/flags/rollout.ts": 2,
+      "every/judge-grid/hostile": 3,
+      "every/company-brain/security/vendor-review.md": 4,
+      "every/code-rag/email/digest.ts": 0,
+      "every/company-brain/sales/discounts.md": 1,
+      "every/code-rag/cache/profile.ts": 2,
+      "every/code-rag/db/ledger.sql": 3,
+      "every/company-brain/support/escalations.md": 4,
+      "every/company-brain/finance/travel-policy.md": 0,
+      "every/code-rag/observability/tracing.ts": 1,
+      "every/code-rag/payments/reconcile.ts": 2,
+      "every/judge-grid/invented_refund": 3,
+      "every/company-brain/product/launch-checklist.md": 4,
+      "every/judge-grid/ideal": 0,
+      "every/company-brain/legal/data-retention.md": 1,
+      "every/judge-grid/credential_leak": 2,
+      "every/company-brain/engineering/incidents.md": 3,
+      "every/company-brain/marketing/customer-stories.md": 4,
+      "every/code-rag/webhooks/stripe.ts": 0,
+      "every/company-brain/engineering/remote-access.md": 1,
+      "every/code-rag/auth/session.ts": 2,
+      "every/judge-grid/verbose_but_safe": 3
+    }
+  },
+  "accuracy_unchanged": 0.9415584415584416,
+  "ece_uncalibrated": {
+    "value": 0.050282253087381254,
+    "ci95": [
+      0.025310685897831933,
+      0.09250478830524425
+    ]
+  },
+  "ece_calibrated_out_of_fold": {
+    "value": 0.04696510450536336,
+    "ci95": [
+      0.021258893840350377,
+      0.0923016380932556
+    ]
+  },
+  "improvement_ci_separated": false,
+  "per_family_uncalibrated": {
+    "every_code-rag": {
+      "n": 48,
+      "ece": 0.018055042110458854
+    },
+    "every_company-brain": {
+      "n": 70,
+      "ece": 0.02956829106690986
+    },
+    "every_judge-grid": {
+      "n": 36,
+      "ece": 0.1636210017760263
+    }
+  },
+  "per_family_calibrated_out_of_fold": {
+    "every_code-rag": {
+      "n": 48,
+      "ece": 0.04931599328696852
+    },
+    "every_company-brain": {
+      "n": 70,
+      "ece": 0.015587147591803857
+    },
+    "every_judge-grid": {
+      "n": 36,
+      "ece": 0.12982706998593485
+    }
+  },
+  "reliability_bins_uncalibrated": [
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "n": 1,
+      "mean_confidence": 0.5926665999540697,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "n": 1,
+      "mean_confidence": 0.6513548646660542,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "n": 5,
+      "mean_confidence": 0.7674524215689008,
+      "accuracy": 0.8
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "n": 1,
+      "mean_confidence": 0.8807970779778823,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "n": 146,
+      "mean_confidence": 0.9927668045886539,
+      "accuracy": 0.952054794520548
+    }
+  ],
+  "reliability_bins_calibrated_out_of_fold": [
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "n": 2,
+      "mean_confidence": 0.5683065966201462,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "n": 3,
+      "mean_confidence": 0.6486715765992725,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "n": 3,
+      "mean_confidence": 0.7354341228631682,
+      "accuracy": 0.3333333333333333
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "n": 15,
+      "mean_confidence": 0.8650223404349534,
+      "accuracy": 0.6666666666666666
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "n": 131,
+      "mean_confidence": 0.9760792630400743,
+      "accuracy": 0.9847328244274809
+    }
+  ],
+  "caveats": [
+    "ECE at this n is high-variance; read the bootstrap intervals, not the point value.",
+    "A single scalar corrects over/under-confidence, not shape miscalibration within a family.",
+    "shipped_temperature is fit on all labeled rows; the out-of-fold ECE is the honest generalization estimate."
+  ]
+}
