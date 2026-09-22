@@ -52,8 +52,11 @@ def test_token_helpers_accept_runtime_return_shapes(monkeypatch):
     fake_torch = SimpleNamespace(Tensor=TorchTensor, tensor=lambda values: values)
     monkeypatch.setitem(sys.modules, "torch", fake_torch)
 
+    encoded_special = []
+
     class Tokenizer:
-        def encode(self, text):
+        def encode(self, text, *, encode_special_tokens=False):
+            encoded_special.append(encode_special_tokens)
             return ([ord(character) for character in text], text)
 
         def single_id(self, text):
@@ -66,6 +69,7 @@ def test_token_helpers_accept_runtime_return_shapes(monkeypatch):
     ids = exl3._encode_ids(tokenizer, "abc")
     assert ids == [97, 98, 99]
     assert exl3._slot_ids(tokenizer, 2, "abc", ids) == [65, 66]
+    assert encoded_special == [True, True, True]
 
 
 def test_runtime_rejects_over_budget_inputs(monkeypatch):
@@ -73,7 +77,8 @@ def test_runtime_rejects_over_budget_inputs(monkeypatch):
         def hf_render_chat_template(self, *_args, **_kwargs):
             return "abcd"
 
-        def encode(self, text):
+        def encode(self, text, *, encode_special_tokens=False):
+            assert encode_special_tokens is True
             return list(range(len(text)))
 
     with pytest.raises(ValueError, match="cache budget"):
@@ -88,4 +93,3 @@ def test_runtime_rejects_over_budget_inputs(monkeypatch):
             max_tokens=10,
             cache_size=4,
         )
-
