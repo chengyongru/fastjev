@@ -35,7 +35,12 @@ def _json_text(value, path: str) -> str:
     if isinstance(value, str) and not value:
         _error(path, "must not be empty")
     try:
-        return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, allow_nan=False)
+        return value if isinstance(value, str) else json.dumps(
+            value,
+            ensure_ascii=False,
+            allow_nan=False,
+            indent=2,
+        )
     except (TypeError, ValueError) as error:
         raise SystemOneValidationError(f"{path}: must contain finite JSON values") from error
 
@@ -94,8 +99,8 @@ def request_rows(payload: dict, served_model: str) -> tuple[list[QuestionSpec], 
 
         if kind == "choice":
             criteria = question.get("criteria")
-            if not isinstance(criteria, dict) or not 2 <= len(criteria) <= MAX_OPTIONS:
-                _error(f"{base}.criteria", f"must contain 2-{MAX_OPTIONS} options")
+            if not isinstance(criteria, dict) or not 1 <= len(criteria) <= MAX_OPTIONS:
+                _error(f"{base}.criteria", f"must contain 1-{MAX_OPTIONS} options")
             option_ids, options = [], []
             for option_id, value in criteria.items():
                 if not isinstance(option_id, str) or not option_id:
@@ -148,8 +153,10 @@ def request_rows(payload: dict, served_model: str) -> tuple[list[QuestionSpec], 
 
 def distribution_confidence(probabilities: list[float]) -> float:
     """Return a documented fastjev certainty proxy, not TypeSafe's private statistic."""
-    if len(probabilities) < 2:
-        raise ValueError("A distribution needs at least two probabilities")
+    if not probabilities:
+        raise ValueError("A distribution needs at least one probability")
+    if len(probabilities) == 1:
+        return 1.0
     entropy = -sum(value * math.log(value) for value in probabilities if value > 0)
     return max(0.0, min(1.0, 1.0 - entropy / math.log(len(probabilities))))
 
@@ -248,11 +255,24 @@ class SystemOneService:
 
     def evaluate(self, payload: dict) -> dict:
         specs, rows = request_rows(payload, self.served_model)
+        scored_rows = [row for row in rows if len(row["options"]) > 1]
         try:
             with self._lock:
-                results = self._score_rows(rows)
+                scored_results = self._score_rows(scored_rows) if scored_rows else []
         except ValueError as error:
             raise SystemOneValidationError(f"questions: {error}") from error
+        by_id = {result.get("id"): result for result in scored_results}
+        results = []
+        for spec in specs:
+            if len(spec.option_ids) == 1:
+                results.append({
+                    "id": spec.id,
+                    "option_ids": list(spec.option_ids),
+                    "probabilities": [1.0],
+                    "input_tokens": 0,
+                })
+            else:
+                results.append(by_id.get(spec.id, {}))
         return response_from_results(self.served_model, specs, results)
 
     def models(self) -> dict:

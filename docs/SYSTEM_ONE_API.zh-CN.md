@@ -87,8 +87,8 @@ curl http://127.0.0.1:8000/v1/systemone \
 适配器保留公开 wire shape，不复现 Jev 的模型行为：
 
 - 请求中的 `model` 必须等于配置的 fastjev 模型 ID。`jev-latest` 等 Jev 名称或别名会被拒绝，不会被冒充。
-- fastjev 当前为 `choice` 支持 2–16 个选项；TypeSafe 文档上限为 255。
-- `score` 支持文档规定的 2–10 级。`noul` 和 `choice` 的标准可以使用字符串、JSON 对象、数组或 `null`；结构化内容会以 JSON 形式渲染到 fastjev prompt。
+- fastjev 为 `choice` 支持 1–16 个选项；只有一个选项时，不调用模型，直接返回概率和置信度均为 1 的确定性结果。TypeSafe 文档上限为 255。
+- `score` 支持文档规定的 2–10 级。`noul` 和 `choice` 的标准可以使用字符串、JSON 对象、数组或 `null`；结构化内容会以带缩进的 JSON 形式渲染到 fastjev prompt。
 - TypeSafe SDK 允许省略 instructions 或设为 `null`。适配器会按类型提供通用问题，但显式 instructions 仍然更合适，因为它定义了预期决策边界。
 - fastjev 默认对每个转换后问题限制 4,096 个输入 token，且不做截断。TypeSafe 文档使用不同的上下文预算。
 - Choice 和 Score 的文档响应要求包含 `confidence`。TypeSafe 没有公开其精确统计量，因此适配器返回 `1 - normalized entropy`，并在顶层 `fastjev` extension 中标为 `one-minus-normalized-entropy`。该数值不能与 TypeSafe confidence 直接比较。
