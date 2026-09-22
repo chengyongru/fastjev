@@ -60,6 +60,91 @@ def test_llama_cpp_backend_translates_the_public_protocol(monkeypatch):
     assert backend.capabilities.max_options == 16
 
 
+def test_llama_cpp_backend_uses_explicit_shared_prefix_path(monkeypatch):
+    observed = {}
+
+    def fake_shared(model, tokenizer, rows, metadata, max_tokens):
+        observed.update(rows=rows, max_tokens=max_tokens)
+        return [scorer_result(row) for row in rows], {"prefix_tokens": 3}
+
+    monkeypatch.setattr("fastjev.backends.llama_cpp.llama_cpp.score_shared", fake_shared)
+    backend = LlamaCppBackend(
+        "model-object",
+        "tokenizer-object",
+        METADATA,
+        max_input_tokens=123,
+        prefix_reuse=True,
+    )
+
+    results = backend.score([REQUEST, BackendRequest(
+        "other",
+        REQUEST.state,
+        REQUEST.instruction,
+        REQUEST.options,
+    )])
+
+    assert [result.id for result in results] == ["decision", "other"]
+    assert observed["max_tokens"] == 123
+    assert observed["rows"][0]["state"] == observed["rows"][1]["state"]
+
+
+def test_llama_cpp_shared_runtime_restores_one_saved_prefix(monkeypatch):
+    class State:
+        llama_state = b"snapshot"
+
+    class Model:
+        def __init__(self):
+            self.events = []
+            self._logits = None
+
+        def reset(self):
+            self.events.append("reset")
+
+        def eval(self, tokens):
+            self.events.append(("eval", list(tokens)))
+            values = [0.0] * 103
+            if tokens == [10]:
+                values[101], values[102] = 3.0, 1.0
+            elif tokens == [20]:
+                values[101], values[102] = 1.0, 3.0
+            self._logits = [values]
+
+        def save_state(self):
+            self.events.append("save")
+            return State()
+
+        def load_state(self, _state):
+            self.events.append("load")
+
+        @property
+        def eval_logits(self):
+            return self._logits
+
+    rows = [
+        {"id": "a", "state": "same", "question": "a", "options": [{"id": "yes"}, {"id": "no"}]},
+        {"id": "b", "state": "same", "question": "b", "options": [{"id": "yes"}, {"id": "no"}]},
+    ]
+    encoded = {
+        "a": ([1, 2, 10], [101, 102], "hash-a"),
+        "b": ([1, 2, 20], [101, 102], "hash-b"),
+    }
+    monkeypatch.setattr(
+        llama_cpp_backend,
+        "_encode_prompt",
+        lambda _model, row, _max: encoded[row["id"]],
+    )
+    monkeypatch.setattr(llama_cpp_backend, "_state_prefix", lambda _model, _state: [1, 2])
+    model = Model()
+
+    results, timing = llama_cpp_backend.score_shared(model, None, rows, METADATA, 10)
+
+    assert model.events.count("save") == 1
+    assert model.events.count("load") == 2
+    assert results[0]["probabilities"][0] > results[0]["probabilities"][1]
+    assert results[1]["probabilities"][1] > results[1]["probabilities"][0]
+    assert timing["prefix_tokens"] == 2
+
+
 def test_llama_cpp_backend_rejects_invalid_option_prompt(monkeypatch):
     def reject(*_args):
         raise ValueError("Answer boundary changes tokenization for slot 'A'")

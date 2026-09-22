@@ -13,17 +13,28 @@ from .base import BackendCapabilities, BackendInfo, BackendRequest, BackendResul
 class LlamaCppBackend:
     """Score categorical requests with one resident GGUF model."""
 
-    def __init__(self, model: Any, tokenizer: Any, metadata: dict, *, max_input_tokens: int = 4096):
+    def __init__(
+        self,
+        model: Any,
+        tokenizer: Any,
+        metadata: dict,
+        *,
+        max_input_tokens: int = 4096,
+        prefix_reuse: bool = False,
+    ):
         if type(max_input_tokens) is not int or max_input_tokens < 1:
             raise ValidationError("max_input_tokens must be a positive integer")
         source = metadata.get("source")
         revision = metadata.get("revision")
         if not isinstance(source, str) or not source or not isinstance(revision, str) or not revision:
             raise ValidationError("llama.cpp metadata must contain nonempty source and revision strings")
+        if type(prefix_reuse) is not bool:
+            raise ValidationError("prefix_reuse must be a boolean")
         self._model = model
         self._tokenizer = tokenizer
         self._metadata = dict(metadata)
         self._max_input_tokens = max_input_tokens
+        self._prefix_reuse = prefix_reuse
         self._closed = False
         self._info = BackendInfo(name="llama-cpp", model=source, revision=revision)
         self._capabilities = BackendCapabilities(min_options=2, max_options=16)
@@ -39,6 +50,7 @@ class LlamaCppBackend:
         n_ctx: int | None = None,
         n_batch: int = 512,
         n_gpu_layers: int = -1,
+        prefix_reuse: bool = False,
         **llama_kwargs: Any,
     ) -> "LlamaCppBackend":
         """Load a local or Hugging Face GGUF through the optional llama.cpp runtime."""
@@ -59,7 +71,13 @@ class LlamaCppBackend:
             ) from error
         except (OSError, RuntimeError, ValueError) as error:
             raise ModelLoadError(str(error)) from error
-        return cls(loaded, tokenizer, metadata, max_input_tokens=max_input_tokens)
+        return cls(
+            loaded,
+            tokenizer,
+            metadata,
+            max_input_tokens=max_input_tokens,
+            prefix_reuse=prefix_reuse,
+        )
 
     @property
     def info(self) -> BackendInfo:
@@ -72,9 +90,8 @@ class LlamaCppBackend:
     def score(self, requests: Sequence[BackendRequest]) -> list[BackendResult]:
         if self._closed:
             raise RuntimeError("LlamaCppBackend is closed")
-        results = []
-        for request in requests:
-            row = {
+        rows = [
+            {
                 "id": request.id,
                 "state": request.state,
                 "question": request.instruction,
@@ -83,20 +100,37 @@ class LlamaCppBackend:
                     for option in request.options
                 ],
             }
-            try:
-                result = llama_cpp.score(
+            for request in requests
+        ]
+        try:
+            if self._prefix_reuse and len(rows) > 1:
+                raw_results, _timing = llama_cpp.score_shared(
                     self._model,
                     self._tokenizer,
-                    row,
+                    rows,
                     self._metadata,
                     self._max_input_tokens,
                 )
-            except ValueError as error:
-                if "input tokens exceed limit" in str(error):
-                    raise InputTooLongError(str(error)) from error
-                raise ValidationError(str(error)) from error
-            except (OSError, RuntimeError) as error:
-                raise BackendExecutionError(str(error)) from error
+            else:
+                raw_results = [
+                    llama_cpp.score(
+                        self._model,
+                        self._tokenizer,
+                        row,
+                        self._metadata,
+                        self._max_input_tokens,
+                    )
+                    for row in rows
+                ]
+        except ValueError as error:
+            if "input tokens exceed limit" in str(error):
+                raise InputTooLongError(str(error)) from error
+            raise ValidationError(str(error)) from error
+        except (OSError, RuntimeError) as error:
+            raise BackendExecutionError(str(error)) from error
+
+        results = []
+        for result in raw_results:
             results.append(BackendResult(
                 id=result["id"],
                 option_ids=tuple(result["option_ids"]),

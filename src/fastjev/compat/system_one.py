@@ -56,6 +56,16 @@ class SystemOneAdapter:
                 "probabilities": [decision.probabilities[option_id] for option_id in spec.option_ids],
                 "input_tokens": decision.usage.input_tokens,
                 "prompt_version": decision.provenance.prompt_version,
+                "probability_status": decision.provenance.probability_status,
+                "calibration": (
+                    None
+                    if decision.calibration is None
+                    else {
+                        "method": decision.calibration.method,
+                        "temperature": decision.calibration.temperature,
+                        "workload": decision.calibration.workload,
+                    }
+                ),
             })
         return response_from_results(self.served_model, specs, results)
 

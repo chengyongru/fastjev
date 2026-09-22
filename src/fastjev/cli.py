@@ -16,7 +16,11 @@ from ._runtime.shared import score_shared
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("direct", "serial", "shared", "reranker"), required=True)
-    parser.add_argument("--backend", choices=("torch", "mlx", "llama-cpp"), default="torch")
+    parser.add_argument("--backend", choices=("torch", "mlx", "llama-cpp", "exl3"), default="torch")
+    parser.add_argument("--device", choices=("auto", "cuda", "mps"), default="auto",
+                        help="Torch accelerator; auto prefers CUDA and otherwise uses MPS")
+    parser.add_argument("--dtype", choices=("bfloat16", "float16", "float32"),
+                        default="bfloat16", help="Torch model dtype")
     parser.add_argument("--mlx-bits", type=int, choices=(4, 8), help="Quantize MLX weights in memory; default preserves source precision")
     parser.add_argument("--mlx-cache-limit-mib", type=int,
                         help="MLX inactive allocation cache in MiB (default: 256; 0 disables caching)")
@@ -26,6 +30,10 @@ def main() -> None:
                         help="llama.cpp prompt batch size")
     parser.add_argument("--llama-cpp-filename",
                         help="Exact GGUF filename when --model is a Hugging Face repo ID")
+    parser.add_argument("--exl3-cache-size", type=int, default=16384,
+                        help="EXL3 KV-cache token capacity")
+    parser.add_argument("--exl3-gpu-split", type=float, default=22.5,
+                        help="EXL3 GPU allocation in GiB")
     parser.add_argument("--model", required=True)
     parser.add_argument("--revision", required=True)
     parser.add_argument("--input", type=Path, required=True)
@@ -38,6 +46,10 @@ def main() -> None:
         parser.error("--llama-cpp-n-gpu-layers must be -1 or nonnegative")
     if args.llama_cpp_n_batch < 1:
         parser.error("--llama-cpp-n-batch must be positive")
+    if args.exl3_cache_size < 2:
+        parser.error("--exl3-cache-size must be at least 2")
+    if args.exl3_gpu_split <= 0:
+        parser.error("--exl3-gpu-split must be positive")
     if args.llama_cpp_filename is not None and args.backend != "llama-cpp":
         parser.error("--llama-cpp-filename requires --backend llama-cpp")
     if args.mlx_bits and args.backend != "mlx":
@@ -49,8 +61,10 @@ def main() -> None:
             parser.error("--mlx-cache-limit-mib must be nonnegative")
     if args.backend == "mlx" and args.mode == "reranker":
         parser.error("MLX supports direct, serial, and shared modes; reranker requires torch")
-    if args.backend == "llama-cpp" and args.mode != "direct":
-        parser.error("llama-cpp supports direct mode only")
+    if args.backend == "llama-cpp" and args.mode == "reranker":
+        parser.error("llama-cpp supports direct, serial, and shared modes")
+    if args.backend == "exl3" and args.mode != "direct":
+        parser.error("EXL3 supports direct mode only")
     rows = [json.loads(line) for line in args.input.read_text().splitlines() if line.strip()]
     if not rows:
         parser.error("Input is empty")
@@ -77,8 +91,26 @@ def main() -> None:
             n_gpu_layers=args.llama_cpp_n_gpu_layers,
         )
         direct = llama_cpp.score
+        if args.mode == "serial":
+            serial = llama_cpp.SerialPrefixScorer
+        elif args.mode == "shared":
+            shared = llama_cpp.score_shared
+    elif args.backend == "exl3":
+        from ._runtime import exl3
+
+        model, tokenizer, metadata = exl3.load_model(
+            args.model,
+            args.revision,
+            cache_size=args.exl3_cache_size,
+            gpu_split=args.exl3_gpu_split,
+        )
+        direct = exl3.score
     else:
-        model, tokenizer, metadata = load_causal_model(args.model, args.revision)
+        model, tokenizer, metadata = load_causal_model(
+            args.model, args.revision, args.device, args.dtype
+        )
+        if args.mode == "reranker" and metadata["device"] == "mps":
+            parser.error("reranker mode is unavailable on MPS; use direct, serial, or shared")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("x") as destination:
         if args.mode == "shared":

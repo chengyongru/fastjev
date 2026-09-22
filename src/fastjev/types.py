@@ -127,6 +127,15 @@ class Uncertainty:
 
 
 @dataclass(frozen=True)
+class Calibration:
+    """Calibration applied to the returned option distribution."""
+
+    method: str
+    temperature: float
+    workload: str
+
+
+@dataclass(frozen=True)
 class Decision(Generic[T]):
     """A typed decision plus distribution, resource use, and provenance."""
 
@@ -138,3 +147,4 @@ class Decision(Generic[T]):
     timing: Timing
     provenance: Provenance
     uncertainty: Uncertainty
+    calibration: Calibration | None = None

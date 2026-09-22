@@ -69,8 +69,40 @@ def digest(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-def load_causal_model(source: str, revision: str):
-    """Load one pinned causal model on the sole visible CUDA device."""
+def resolve_device(device: str = "auto"):
+    """Resolve the supported accelerator while preserving the one-CUDA-device contract."""
+    import torch
+
+    if device not in {"auto", "cuda", "mps"}:
+        raise ValueError("device must be auto, cuda, or mps")
+    if device == "auto":
+        device = "cuda" if torch.cuda.is_available() else "mps"
+    if device == "cuda":
+        if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
+            raise ValueError("Expose exactly one CUDA GPU, for example with CUDA_VISIBLE_DEVICES")
+        return torch.device("cuda:0")
+    if not torch.backends.mps.is_available():
+        raise ValueError("MPS is unavailable; use an Apple Silicon Mac with an MPS-enabled PyTorch build")
+    return torch.device("mps")
+
+
+def synchronize(device) -> None:
+    """Wait for queued accelerator work before recording wall-clock timing."""
+    import torch
+
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+    elif device.type == "mps":
+        torch.mps.synchronize()
+
+
+def load_causal_model(
+    source: str,
+    revision: str,
+    device: str = "auto",
+    dtype: str = "bfloat16",
+):
+    """Load one pinned causal model on a single CUDA or Apple GPU."""
     import torch
     import transformers
 
@@ -79,8 +111,9 @@ def load_causal_model(source: str, revision: str):
         raise ValueError("Remote models require a pinned 40-character commit revision")
     if local and not revision:
         raise ValueError("Local models require an explicit manifest/revision string")
-    if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
-        raise ValueError("Expose exactly one CUDA GPU, for example with CUDA_VISIBLE_DEVICES")
+    target = resolve_device(device)
+    if dtype not in {"bfloat16", "float16", "float32"}:
+        raise ValueError("dtype must be bfloat16, float16, or float32")
     common = {"revision": None if local else revision, "local_files_only": local, "trust_remote_code": False}
     config = transformers.AutoConfig.from_pretrained(source, **common)
     tokenizer = transformers.AutoTokenizer.from_pretrained(source, **common)
@@ -93,8 +126,8 @@ def load_causal_model(source: str, revision: str):
     model, loading = cls.from_pretrained(
         source,
         config=config,
-        dtype=torch.bfloat16,
-        device_map={"": "cuda:0"},
+        dtype=getattr(torch, dtype),
+        device_map={"": str(target)},
         low_cpu_mem_usage=True,
         output_loading_info=True,
         **common,
@@ -105,7 +138,8 @@ def load_causal_model(source: str, revision: str):
     metadata = {
         "source": source,
         "revision": revision,
-        "dtype": "bfloat16",
+        "dtype": dtype,
+        "device": str(target),
         "torch_version": torch.__version__,
         "transformers_version": transformers.__version__,
     }

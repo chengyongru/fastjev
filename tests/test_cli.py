@@ -7,7 +7,7 @@ from fastjev.cli import main
 
 @pytest.mark.parametrize("extra,message", [
     (["--backend", "mlx", "--mode", "reranker"], "reranker requires torch"),
-    (["--backend", "llama-cpp", "--mode", "serial"], "llama-cpp supports direct mode only"),
+    (["--backend", "exl3", "--mode", "serial"], "EXL3 supports direct mode only"),
     (["--mode", "direct", "--mlx-bits", "4"], "requires --backend mlx"),
     (["--mode", "direct", "--mlx-cache-limit-mib", "0"], "requires --backend mlx"),
     (["--mode", "direct", "--backend", "mlx", "--mlx-cache-limit-mib", "-1"], "must be nonnegative"),
