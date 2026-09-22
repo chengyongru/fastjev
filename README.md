@@ -137,19 +137,28 @@ answers with zero output tokens. See the
 [results report](docs/RESULTS.md#llamacpp-q4_k_m-on-an-rtx-5090) for its quality
 results, exact conditions, and row-level evidence.
 
+The optional 27B EXL3 backend was validated separately on the same RTX 5090 with the
+same three-question safeguard: all selections matched, output token count remained
+zero, and the median call took 365.48 ms. It is excluded from the same-model table
+because model size, quantization, runtime, and background GPU allocation differ. The
+[results report](docs/RESULTS.md#public-sdk-shell-safeguard-validation-on-an-rtx-5090)
+also records the calibrated Torch smoke and llama.cpp prefix-reuse comparison.
+
 ### Decision quality
 
-| Frozen workload | FastJev direct Qwen3.5-4B | Qwen3-Reranker-4B | Published Jev |
-|---|---:|---:|---:|
-| Authored decisions, 144 rows | **0.813** | 0.625 | N/A |
-| WANLI, 256 rows | **0.637** | 0.522 | N/A |
-| TypeSafe public subset, 102 rows / 20 cases | **0.845** | 0.560 | 0.883 |
+| Frozen workload | FastJev direct Qwen3.5-4B | EXL3 Qwen3.8-27B | Qwen3-Reranker-4B | Published Jev |
+|---|---:|---:|---:|---:|
+| Authored decisions, 144 rows | 0.813 | **0.946** | 0.625 | N/A |
+| WANLI, 256 rows | **0.637** | N/A | 0.522 | N/A |
+| TypeSafe public subset, 102 rows / 20 cases | **0.845** | N/A | 0.560 | 0.883 |
 
-The first two rows report balanced accuracy. The third reports modal agreement
-with equal weighting across cases. The Jev column reproduces public records.
-The two open model columns come from local frozen evaluations. The
-[results report](docs/RESULTS.md) provides the full data, perturbations, and
-claim boundaries.
+The first two rows report balanced accuracy; the authored metric averages the three
+decision families equally. The third reports modal agreement with equal weighting
+across cases. The EXL3 value uses the same authored rows and metric, but it is a
+system-level comparison: model family, size, quantization, and runtime all differ.
+The Jev column reproduces public records. Open-model values come from local frozen
+evaluations. The [results report](docs/RESULTS.md) provides the full data,
+perturbations, and claim boundaries.
 
 ## How it compares
 
