@@ -12,6 +12,7 @@ No model weights or third-party raw evaluation records are distributed here.
 | wllama | https://github.com/ngxson/wllama | `3.6.1` | Vendored browser inference runtime; MIT. |
 | Vue | https://github.com/vuejs/core | `3.5.21` | Browser demo UI runtime; MIT. |
 | Material Symbols | https://fonts.google.com/icons | Google Fonts CDN | Browser demo icons; Apache-2.0. |
+| Jev Ultrafast | https://github.com/browser-use/jev-ultrafast | `1231850a0bf1a0c0341fe408ef1668dbbfdfac46` | Executed by the verified browser demo; MIT; source is not redistributed. Checked 2026-09-22. |
 | Qwen3-0.6B GGUF | https://huggingface.co/Qwen/Qwen3-0.6B-GGUF | `23749fefcc72300e3a2ad315e1317431b06b590a` | External Q8_0 browser model; weights are not redistributed. |
 | MiniCPM5-2B GGUF | https://huggingface.co/openbmb/MiniCPM5-2B-GGUF | `2079a22f3beaa4e306449978533478fe0522f4b3` | External Q4_K_M browser model; Apache-2.0 on its model card; weights are not redistributed. |
 | Qwen3.5-4B GGUF | https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF | `4168f45a16a1290d65a4ec0fa312ae917a4c15d6` | External Q4_K_M browser model; weights are not redistributed. |
