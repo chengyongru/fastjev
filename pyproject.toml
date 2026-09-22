@@ -46,10 +46,10 @@ vllm = [
 ]
 
 [project.scripts]
-fastjev-score = "semif_phase1.cli:main"
-fastjev-serve = "semif_phase1.server:main"
-semif-score = "semif_phase1.cli:main"
-semif-serve = "semif_phase1.server:main"
+fastjev-score = "fastjev.cli:main"
+fastjev-serve = "fastjev.server:main"
+semif-score = "fastjev.cli:main"
+semif-serve = "fastjev.server:main"
 
 [project.urls]
 Homepage = "https://github.com/chengyongru/fastjev"

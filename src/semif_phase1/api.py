@@ -1,52 +1,12 @@
-"""HTTP application exposing the TypeSafe System One request and response shapes."""
+"""Compatibility import for :mod:`fastjev.http`."""
 
-from __future__ import annotations
-
-import secrets
-
-from fastapi import Depends, FastAPI, Header, HTTPException
-from fastapi.responses import JSONResponse
-
-from . import __version__
-from .system_one import SystemOneService, SystemOneValidationError
+from fastjev.http import *  # noqa: F403
+from fastjev import http as _implementation
 
 
-def create_app(service: SystemOneService, api_key: str | None = None) -> FastAPI:
-    """Create an app around an already-loaded, single-model service."""
-    app = FastAPI(
-        title="fastjev System One API",
-        version=__version__,
-        description=(
-            "A wire-compatible subset of TypeSafe's System One API backed by fastjev. "
-            "It does not serve Jev and its probabilities are not calibrated as Jev probabilities."
-        ),
-    )
+def __getattr__(name):
+    return getattr(_implementation, name)
 
-    def authorize(authorization: str | None = Header(default=None)) -> None:
-        if api_key is None:
-            return
-        expected = f"Bearer {api_key}"
-        if authorization is None or not secrets.compare_digest(authorization, expected):
-            raise HTTPException(
-                status_code=401,
-                detail="Missing or invalid bearer token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
 
-    @app.exception_handler(SystemOneValidationError)
-    async def validation_error(_request, error: SystemOneValidationError):
-        return JSONResponse(status_code=422, content={"detail": str(error)})
-
-    @app.get("/healthz", include_in_schema=False)
-    def health() -> dict:
-        return {"status": "ready", "model": service.served_model}
-
-    @app.get("/v1/models", dependencies=[Depends(authorize)])
-    def models() -> dict:
-        return service.models()
-
-    @app.post("/v1/systemone", dependencies=[Depends(authorize)])
-    def system_one(payload: dict) -> dict:
-        return service.evaluate(payload)
-
-    return app
+def __dir__():
+    return sorted(set(globals()) | set(dir(_implementation)))

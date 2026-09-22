@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from semif_phase1 import llama_cpp_backend
+from ..runtime import llama_cpp
 
 from ..errors import BackendExecutionError, InputTooLongError, ModelLoadError, ValidationError
 from .base import BackendCapabilities, BackendInfo, BackendRequest, BackendResult
@@ -43,7 +43,7 @@ class LlamaCppBackend:
     ) -> "LlamaCppBackend":
         """Load a local or Hugging Face GGUF through the optional llama.cpp runtime."""
         try:
-            loaded, tokenizer, metadata = llama_cpp_backend.load_model(
+            loaded, tokenizer, metadata = llama_cpp.load_model(
                 model,
                 revision,
                 filename=filename,
@@ -84,7 +84,7 @@ class LlamaCppBackend:
                 ],
             }
             try:
-                result = llama_cpp_backend.score(
+                result = llama_cpp.score(
                     self._model,
                     self._tokenizer,
                     row,

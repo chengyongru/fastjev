@@ -1,6 +1,6 @@
 """Public Python SDK for backend-neutral semantic decisions."""
 
-from semif_phase1 import __version__
+__version__ = "0.1.1"
 
 from .backends import (
     BackendCapabilities,
@@ -38,9 +38,9 @@ from .types import (
 )
 
 # Retained low-level imports for compatibility with the first fastjev release.
-from semif_phase1.core import load_causal_model
-from semif_phase1.direct import score as score_direct
-from semif_phase1.system_one import (
+from .runtime.core import load_causal_model
+from .runtime.direct import score as score_direct
+from .compat.wire import (
     QuestionSpec,
     SystemOneService,
     SystemOneValidationError,

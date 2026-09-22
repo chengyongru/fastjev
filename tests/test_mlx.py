@@ -10,7 +10,7 @@ mx = pytest.importorskip("mlx.core")
 pytest.importorskip("mlx_lm")
 
 from mlx_lm.models.qwen3_5 import Model, ModelArgs
-from semif_phase1 import mlx_backend as backend
+from fastjev.runtime import mlx as backend
 
 
 class Tokenizer:

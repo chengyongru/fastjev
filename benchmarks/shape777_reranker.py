@@ -10,8 +10,8 @@ import statistics
 import time
 from pathlib import Path
 
-from semif_phase1.core import load_causal_model, softmax
-from semif_phase1.reranker import score_pair_batch
+from fastjev.runtime.core import load_causal_model, softmax
+from fastjev.runtime.reranker import score_pair_batch
 
 
 def percentile(values, fraction):

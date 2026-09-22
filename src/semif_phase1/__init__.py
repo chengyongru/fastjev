@@ -1,3 +1,5 @@
-"""fastjev decision scoring, retaining the inherited semif_phase1 import path."""
+"""Deprecated compatibility namespace for inherited SemIf imports."""
 
-__version__ = "0.1.1"
+from fastjev import __version__
+
+__all__ = ["__version__"]

@@ -5,7 +5,7 @@ import pytest
 from fastjev import BackendOption, BackendRequest
 from fastjev.backends import MLXBackend, TorchBackend
 from fastjev.errors import InputTooLongError, ModelLoadError
-from semif_phase1 import mlx_backend
+from fastjev.runtime import mlx as mlx_backend
 
 
 METADATA = {"source": "fixture/model", "revision": "fixture-revision"}
@@ -65,7 +65,7 @@ def test_mlx_backend_implements_the_same_protocol(monkeypatch):
         observed.update(row=row, max_tokens=max_tokens)
         return scorer_result(row)
 
-    monkeypatch.setattr("fastjev.backends.mlx.mlx_backend.score", fake_score)
+    monkeypatch.setattr("fastjev.backends.mlx.mlx.score", fake_score)
     backend = MLXBackend("model-object", "tokenizer-object", METADATA, max_input_tokens=321)
     result = backend.score([REQUEST])[0]
 

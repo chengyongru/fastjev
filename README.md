@@ -177,6 +177,10 @@ Use `fastjev-score` for JSONL jobs. Install `fastjev[api,torch]` and run
 [HTTP guide](docs/SYSTEM_ONE_API.md) covers server setup, authentication, and
 compatibility boundaries.
 
+New integrations should import `fastjev` and use the `fastjev-*` commands. The
+inherited `semif_phase1` imports and `semif-*` command aliases are compatibility
+shims only; maintained implementations live under the `fastjev` namespace.
+
 ## Documentation
 
 The [results report](docs/RESULTS.md) covers speed, quality, perturbations, and

@@ -205,6 +205,13 @@ backend 特定的选项限制写入 `BackendCapabilities`。领域类型本身�
 
 内置实现包括 `TorchBackend`、`MLXBackend`、`LlamaCppBackend` 和 `VLLMBackend`。`FastJev.from_pretrained` 继续作为 Torch 便利入口；其他 runtime 通过显式依赖注入接入。
 
+## 包命名空间
+
+持续维护的 SDK、runtime、CLI 和 HTTP 实现均位于 `fastjev` 下。继承的
+`semif_phase1` 模块会转发到这些实现，使旧脚本继续工作；它们不会维护另一份 runtime
+实现。新代码应导入 `fastjev`、`fastjev.runtime` 或文档列出的公共模块。
+`semif-score` 与 `semif-serve` 别名同样转发到持续维护的 `fastjev` 入口。
+
 ## 结果语义
 
 每个 `Decision` 都提供：

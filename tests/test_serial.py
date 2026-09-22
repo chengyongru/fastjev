@@ -1,4 +1,4 @@
-from semif_phase1.serial import _state_prefix
+from fastjev.runtime.serial import _state_prefix
 
 
 class Tokenizer:

@@ -140,6 +140,9 @@ Torch 与 vLLM 两行共享另一组完全相同的 125、152 和 151-token prom
 
 使用 `fastjev-score` 处理 JSONL。安装 `fastjev[api,torch]` 并运行 `fastjev-serve`，即可提供 `POST /v1/systemone` 和 `GET /v1/models`。[SDK 指南](docs/SDK.zh-CN.md)介绍 batching 和自定义后端。[HTTP 指南](docs/SYSTEM_ONE_API.zh-CN.md)介绍服务配置、认证与兼容边界。
 
+新集成应导入 `fastjev` 并使用 `fastjev-*` 命令。继承的 `semif_phase1` import 和
+`semif-*` 命令别名仅作为兼容转发层保留；持续维护的实现均位于 `fastjev` 命名空间。
+
 ## 文档
 
 [结果文档](docs/RESULTS.zh-CN.md)介绍速度、质量、扰动测试和限制。[方法文档](docs/METHOD.zh-CN.md)记录固定 prompt、指标和计时范围。[复现指南](docs/REPRODUCE.zh-CN.md)提供固定环境和验证命令。[基准包](benchmarks/README.zh-CN.md)包含 fixture、runner 和来源选择。[交互回放](demo/index.html)与[纯浏览器 WebGPU demo](webgpu-demo/index.html)用于可视化浏览项目。

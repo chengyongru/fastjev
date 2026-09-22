@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from semif_phase1.core import load_causal_model
-from semif_phase1.direct import score as score_direct
+from ..runtime.core import load_causal_model
+from ..runtime.direct import score as score_direct
 
 from ..errors import InputTooLongError, ModelLoadError, ValidationError
 from .base import (
