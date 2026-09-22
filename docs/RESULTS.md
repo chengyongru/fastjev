@@ -31,6 +31,41 @@ The TypeSafe difference between direct logits and the published Jev values is 3.
 
 On the two Every retrieval tasks, both systems had MRR 1.0 and the same Recall@1: 1.0 for code retrieval and 0.929 for company knowledge. The reranker's lower row-level binary accuracies (0.542 and 0.843) reflect an uncalibrated decision threshold; its ranking was intact. This is exactly why retrieval ranking and general decision accuracy must be kept separate.
 
+### llama.cpp Q4_K_M on an RTX 5090
+
+The pinned 3,013,027,808-byte Qwen3.5-4B Q4_K_M artifact completed every owned
+quality row through FastJev's llama.cpp backend:
+
+| Frozen workload | GGUF balanced accuracy | Torch BF16 serial-prefix balanced accuracy | Argmax agreement |
+|---|---:|---:|---:|
+| Authored, 144 rows | 0.803 | 0.813 | 138/144 (95.8%) |
+| Perturbations, 108 rows | 0.775 | 0.780 | 105/108 (97.2%) |
+
+The GGUF-minus-BF16 paired differences were -0.010 on authored rows (95%
+source-group bootstrap interval -0.036 to 0.015) and -0.004 on perturbations
+(-0.028 to 0.017). These results show small measured degradation on these two
+owned sets, not general equivalence between Q4_K_M and BF16. Because the BF16
+reference uses state-prefix reuse while llama.cpp evaluates fresh prompts, the
+comparison covers complete runtime paths and does not isolate quantization.
+
+The separate public-SDK safeguard smoke selected `block`, `critical`, and
+`true` in the warmup and all seven measured runs. Model construction took 4.05
+seconds. The median complete three-decision call took 2.344 seconds, or 1.28
+decisions/s, and all decisions used zero output tokens. Whole-device GPU memory
+rose from 82 MiB before load to 4,003 MiB after load and 4,085 MiB after the
+measurements. The runtime reported CUDA GPU-offload support with all layers
+requested on the GPU.
+
+The README places this result beside the historical Torch/vLLM measurements to
+show the practical backend trade-off, but does not calculate a direct speed
+ratio: its prompts differ, and the current llama.cpp backend executes the three
+requests serially. The committed
+[SDK record](../results/raw/llama-cpp-qwen3.5-4b-q4-k-m-rtx5090-sdk.json),
+[authored evaluation](../results/raw/llama-cpp-qwen3.5-4b-q4-k-m-authored144.json),
+and
+[perturbation evaluation](../results/raw/llama-cpp-qwen3.5-4b-q4-k-m-perturbations108.json)
+retain the environment, raw timings, row-level errors, and bootstrap results.
+
 ### Robustness and confidence
 
 On 36 owned base cases, direct logits scored 0.723 mean-family balanced accuracy and the reranker 0.530. For meaning-preserving variants:

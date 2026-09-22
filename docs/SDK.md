@@ -48,6 +48,14 @@ Install the optional llama.cpp Python bindings for a local GGUF file, including 
 pip install 'fastjev[llama-cpp]'
 ```
 
+For NVIDIA GPU offload, install from the upstream wheel index matching the CUDA
+runtime. The committed RTX 5090 validation used CUDA 13.0:
+
+```bash
+pip install 'fastjev[llama-cpp]' \
+  --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu130
+```
+
 `LlamaCppBackend` reads the model's embedded chat template and last-position logits directly. It does not start or require another server, and it rejects GGUF files without a safe chat template or exact single-token answer slots:
 
 ```python

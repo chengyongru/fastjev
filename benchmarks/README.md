@@ -14,6 +14,27 @@ CUDA_VISIBLE_DEVICES=0 python benchmarks/decision_vs_generation.py \
 
 This runs three warmed measurements of each path on the first 21-row shared-state group. The generated baseline requests only an ordered JSON array of `"yes"`/`"no"` strings. The committed run, including exact prompt messages and token timelines, is [decision-vs-compact-array.json](../results/raw/decision-vs-compact-array.json).
 
+## llama.cpp SDK and quality validation
+
+`llama_cpp_sdk.py` freezes a three-question shell-safeguard request and records
+model identity, environment, GPU observations, one warmup, seven raw public-SDK
+timings, selections, and probabilities. It requires a local GGUF path so the
+artifact can be hashed before results are accepted:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python benchmarks/llama_cpp_sdk.py \
+  --model /path/to/Qwen_Qwen3.5-4B-Q4_K_M.gguf \
+  --revision 4168f45a16a1290d65a4ec0fa312ae917a4c15d6 \
+  --fastjev-commit "$(git rev-parse HEAD)" \
+  --output llama-cpp-sdk-run.json
+```
+
+The complete llama.cpp quality commands are in the
+[reproduction guide](../docs/REPRODUCE.md#reproduce-the-rtx-5090-gguf-validation).
+Committed predictions cover all 144 authored and 108 perturbation rows; the two
+evaluation reports use the existing Torch BF16 predictions as paired
+comparisons.
+
 ## Stability perturbations
 
 The committed 108-row stability fixture is deterministically derived from the 36 owned originals. Rebuild it and its manifest with:

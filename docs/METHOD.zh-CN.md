@@ -37,6 +37,28 @@ TypeSafe 提取读取四个由本地提供且经 hash 验证的 `*-cases.js` 快
 
 Qwen3-0.6B、MiniCPM5-2B 和 Qwen3.5-4B 在 144 条自编数据、108 条扰动数据和 102 条选定 TypeSafe 数据上使用相同冻结 prompt 与原生 BF16 末位置选项 logits 评分器。TypeSafe 众数一致率先在 20 个源 case 内分别平均，再对 case 等权平均。浏览器工件是独立固定的 GGUF 量化版本。浏览器冒烟测试计时从页面发起每项操作后开始；模型文件由本地 SSD 提供，不计网络传输。成功冒烟要求模型加载、warmup、所有展示选项 logits 有限，并完成生成路径；它不能证明完整量化质量或可迁移延迟。
 
+## llama.cpp GGUF 验证
+
+服务端 GGUF 验证使用 `bartowski/Qwen_Qwen3.5-4B-GGUF` revision
+`4168f45a16a1290d65a4ec0fa312ae917a4c15d6`、精确文件
+`Qwen_Qwen3.5-4B-Q4_K_M.gguf`，其 SHA-256 为
+`13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983`。
+commit `e9ee737` 的 FastJev 0.1.1 通过 `llama-cpp-python` 0.3.35 的 CUDA
+13.0 wheel 运行，设置 `n_gpu_layers=-1`、`n_batch=512`，并在 WSL2 下只暴露
+一块 RTX 5090。runtime 的 GPU-offload 探针必须返回 true。
+
+质量测试与主要的已提交 Torch BF16 预测使用相同 prompt 约定和 evaluator。llama.cpp
+direct mode 分别评分全部 144 行自编数据与 108 行扰动数据；缺失或无效行仍按失败计入。
+配对的 BF16 文件使用原生状态前缀缓存。报告在这些完整 runtime 路径之间按语义 ID
+对齐 argmax，因此没有把量化影响与 serving shape、kernel 影响相互隔离。
+
+`benchmarks/llama_cpp_sdk.py` 定义另一项固定的三问题 shell-safeguard 冒烟测试，
+不会执行任何命令。SDK 构造耗时包括 GGUF 加载和用于来源记录的 SHA-256 遍历。
+一次不计时 warmup 后，围绕公共 API 测量七次完整 `decide_many` 调用。每次调用包含
+相同三个问题，当前 llama.cpp 会按顺序执行它们。模型传输、进程启动、结果序列化和
+warmup 不计入所报告的中位数。GPU 显存来自整卡 `nvidia-smi` 观测，不是仅限 allocator
+的测量。
+
 ## 形状匹配的系统基准
 
 项目自有 fixture 包含 37 个状态，每个状态使用 21 项固定二元标准，共 777 项决策。状态长度约 8,000 字符，用于测试重复上下文计算。它与公开 Every/Jev 演示具有相同的计数结构，但不复现其未发布文档、token 长度、硬件、API 路径或模型。因此，这是一项系统测量，不是与 Jev 的正面对比基准。

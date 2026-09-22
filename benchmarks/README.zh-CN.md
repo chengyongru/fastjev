@@ -16,6 +16,24 @@ CUDA_VISIBLE_DEVICES=0 python benchmarks/decision_vs_generation.py \
 
 该命令在第一个 21 行共享状态分组上，对每条路径各进行三次 warm 测量。生成基线只请求一个有序的 `"yes"`/`"no"` JSON 数组。提交的运行记录包含精确 prompt message 和 token 时间线，见 [decision-vs-compact-array.json](../results/raw/decision-vs-compact-array.json)。
 
+## llama.cpp SDK 与质量验证
+
+`llama_cpp_sdk.py` 固定一个三问题 shell-safeguard 请求，并记录模型身份、环境、GPU
+观测、一次 warmup、七次公共 SDK 原始计时、选择和概率。它要求本地 GGUF 路径，以便
+在接受结果前计算工件 hash：
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python benchmarks/llama_cpp_sdk.py \
+  --model /path/to/Qwen_Qwen3.5-4B-Q4_K_M.gguf \
+  --revision 4168f45a16a1290d65a4ec0fa312ae917a4c15d6 \
+  --fastjev-commit "$(git rev-parse HEAD)" \
+  --output llama-cpp-sdk-run.json
+```
+
+完整 llama.cpp 质量命令见
+[复现指南](../docs/REPRODUCE.zh-CN.md#复现-rtx-5090-gguf-验证)。已提交预测覆盖全部
+144 行自编数据和 108 行扰动数据；两份评估报告使用现有 Torch BF16 预测进行配对比较。
+
 ## 稳定性扰动
 
 提交的 108 行稳定性 fixture 由 36 个项目自有原始 case 确定性生成。按以下命令重建 fixture 和 manifest：

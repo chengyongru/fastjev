@@ -86,18 +86,26 @@ pip install -e '.[torch]'
 
 ## 实测结果
 
-### RTX 5090 上的 Torch 与 vLLM
+### RTX 5090 后端性能对比
 
-同机集成测试使用固定的 Qwen3.5-4B checkpoint、完全相同的三个问题输入（125、152 和 151 token）、一次 warmup 和七次 `decide_many` 计时。
+三项测量都在 WSL2 的同一块 RTX 5090 上，通过公共 `decide_many` API 运行
+Qwen3.5-4B；每项测量包含一次 warmup 和七次三问题调用。
 
-| 后端 | 模型加载 | 三项决策 batch 中位耗时 | 决策/秒 |
-|---|---:|---:|---:|
-| Torch | **10.04 秒** | 161.97 毫秒 | 18.52 |
-| vLLM | 40.43 秒 | **82.73 毫秒** | **36.26** |
+| 后端 | 模型格式 | 请求执行方式 | 模型加载 | 三项决策中位耗时 | 决策/秒 |
+|---|---|---|---:|---:|---:|
+| Torch | BF16 | 顺序执行 | 10.04 秒 | 161.97 毫秒 | 18.52 |
+| vLLM | BF16 | 批量执行 | 40.43 秒 | **82.73 毫秒** | **36.26** |
+| llama.cpp | Q4_K_M | 顺序执行 | **4.05 秒** | 2.344 秒 | 1.28 |
 
 在这项 RTX 5090 / WSL 工作负载上，vLLM 吞吐量为 Torch 的 1.96 倍，batch 中位延迟降低 48.9%。额外的 30.38 秒启动成本需要常驻处理约 383 个三项决策 batch 才能抵消。两个后端的三项选择完全一致。
 
 [PR #7](https://github.com/chengyongru/fastjev/pull/7) 记录了这项历史集成测量，包括精确环境和汇总中位数。仓库内的可复现 benchmark bundle 覆盖另外提交了逐行数据的实验。
+
+llama.cpp 一行使用后续的 shell safeguard fixture，输入为 183、185 和 165 token；
+Torch 与 vLLM 两行共享另一组完全相同的 125、152 和 151-token prompt。因此该表可以
+展示实际 SDK 成本，但不能据此计算 llama.cpp 与 BF16 的精确速度倍率。llama.cpp 的
+全部决策均符合预期，输出 token 数为 0。[结果文档](docs/RESULTS.zh-CN.md#rtx-5090-上的-llamacpp-q4_k_m)
+记录了质量结果、精确条件和逐行证据。
 
 ### 决策质量
 

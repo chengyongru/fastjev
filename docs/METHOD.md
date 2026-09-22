@@ -35,6 +35,33 @@ Thirty-six owned original cases received three output-blind variants: reverse th
 
 Qwen3-0.6B, MiniCPM5-2B, and Qwen3.5-4B use the same frozen prompt and native BF16 final-position option-logit scorer on the 144 authored, 108 perturbation, and 102 selected TypeSafe rows. TypeSafe modal agreement is averaged within each of the 20 source cases and then equally across cases. The browser artifacts are independently pinned GGUF quantizations. Browser smoke timings begin after the page initiates each operation; model files were served from a local SSD to exclude internet transfer time. A successful smoke requires model load, warmup, finite logits for every displayed option, and completion of the generated path. It does not establish full quantized quality or portable latency.
 
+## llama.cpp GGUF validation
+
+The server-side GGUF validation used
+`bartowski/Qwen_Qwen3.5-4B-GGUF` revision
+`4168f45a16a1290d65a4ec0fa312ae917a4c15d6`, exact file
+`Qwen_Qwen3.5-4B-Q4_K_M.gguf`, and SHA-256
+`13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983`.
+FastJev 0.1.1 at commit `e9ee737` ran through `llama-cpp-python` 0.3.35's
+CUDA 13.0 wheel with `n_gpu_layers=-1`, `n_batch=512`, and one visible RTX
+5090 under WSL2. The runtime GPU-offload probe had to return true.
+
+Quality uses the same prompt contract and evaluator as the primary committed
+Torch BF16 predictions. llama.cpp direct mode scored all 144 authored and 108
+perturbation rows independently; missing or invalid rows would remain failures.
+The paired BF16 files use the native state-prefix cache. The reports compare
+semantic-ID-aligned argmax results across these complete runtime paths, so they
+do not isolate quantization from serving-shape and kernel effects.
+
+`benchmarks/llama_cpp_sdk.py` defines a separate three-question shell-safeguard
+smoke. No command is executed. SDK construction time includes GGUF loading and
+the provenance SHA-256 pass. After one unmeasured warmup, seven complete
+`decide_many` calls are timed around the public API. Each call contains the same
+three questions, which llama.cpp currently evaluates in order. Model transfer,
+process startup, result serialization, and the warmup are outside the reported
+median. GPU memory values are whole-device `nvidia-smi` observations, not
+allocator-only measurements.
+
 ## Shape-matched systems benchmark
 
 An owned fixture contains 37 states and 21 fixed binary criteria per state, giving 777 decisions. States are roughly 8,000 characters and exercise repeated-context computation. It matches the count geometry of the public Every/Jev demonstration, but does not reproduce its unpublished documents, token lengths, hardware, API path, or model. Therefore it is a systems measurement, not a Jev head-to-head benchmark.

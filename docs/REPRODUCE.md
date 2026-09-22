@@ -38,6 +38,68 @@ CUDA_VISIBLE_DEVICES=0 fastjev-score --mode reranker \
 
 The command refuses an existing output path and refuses silent input truncation. Each output embeds the exact revision, library versions, prompt hash, token count, timings, and an explicit probability-status warning. State may be a nonempty string, JSON object, or JSON array. `serial` caches consecutive equal states. `shared` requires every input row to carry the same exact state and is exercised by the 37×21 runner below.
 
+## Reproduce the RTX 5090 GGUF validation
+
+Install FastJev with the upstream CUDA wheel index that matches the runtime.
+The committed measurement used CUDA 13.0:
+
+```bash
+pip install -e '.[llama-cpp]' \
+  --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu130
+```
+
+Download `Qwen_Qwen3.5-4B-Q4_K_M.gguf` from
+`bartowski/Qwen_Qwen3.5-4B-GGUF` at revision
+`4168f45a16a1290d65a4ec0fa312ae917a4c15d6`. Verify that its size is
+3,013,027,808 bytes and its SHA-256 is
+`13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983`,
+then set `MODEL` to its local path.
+
+Run the frozen public-SDK safeguard benchmark:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python benchmarks/llama_cpp_sdk.py \
+  --model "$MODEL" \
+  --revision 4168f45a16a1290d65a4ec0fa312ae917a4c15d6 \
+  --fastjev-commit "$(git rev-parse HEAD)" \
+  --output llama-cpp-sdk-run.json
+```
+
+Regenerate the two complete owned quality outputs and their reports at new
+paths:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 fastjev-score --backend llama-cpp --mode direct \
+  --model "$MODEL" \
+  --revision 4168f45a16a1290d65a4ec0fa312ae917a4c15d6 \
+  --llama-cpp-n-gpu-layers -1 --llama-cpp-n-batch 512 \
+  --input benchmarks/data/authored144.jsonl \
+  --output llama-cpp-authored144.jsonl
+
+CUDA_VISIBLE_DEVICES=0 fastjev-score --backend llama-cpp --mode direct \
+  --model "$MODEL" \
+  --revision 4168f45a16a1290d65a4ec0fa312ae917a4c15d6 \
+  --llama-cpp-n-gpu-layers -1 --llama-cpp-n-batch 512 \
+  --input benchmarks/data/perturbations108.jsonl \
+  --output llama-cpp-perturbations108.jsonl
+
+python benchmarks/evaluate.py \
+  --gold benchmarks/data/authored144.jsonl \
+  --predictions llama-cpp-authored144.jsonl \
+  --comparison results/raw/predictions/direct-authored144.jsonl \
+  --output llama-cpp-authored144-report.json
+
+python benchmarks/evaluate.py \
+  --gold benchmarks/data/perturbations108.jsonl \
+  --predictions llama-cpp-perturbations108.jsonl \
+  --comparison results/raw/predictions/direct-perturbations108.jsonl \
+  --output llama-cpp-perturbations108-report.json
+```
+
+The scorer and benchmark runner reject existing output paths. Hardware timing
+is expected to vary; row counts, model identity, artifact hash, and metric
+definitions are fixed.
+
 ## Third-party evaluations
 
 TypeSafe source records are not included. To reproduce that comparison, supply local snapshots in the source directory. The helper fetches the remaining public evaluation inputs with hash verification:

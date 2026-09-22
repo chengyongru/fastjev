@@ -33,6 +33,35 @@
 
 在两个 Every 检索任务上，两个系统的 MRR 都为 1.0，Recall@1 也相同：代码检索为 1.0，公司知识为 0.929。reranker 较低的逐行二元准确率（0.542 和 0.843）反映的是未校准的决策阈值，其排序能力仍然完好。这正说明检索排序和通用决策准确率必须分开评估。
 
+### RTX 5090 上的 llama.cpp Q4_K_M
+
+固定的 3,013,027,808 字节 Qwen3.5-4B Q4_K_M 工件通过 FastJev 的 llama.cpp
+后端完成了全部项目自有质量行：
+
+| 冻结工作负载 | GGUF 平衡准确率 | Torch BF16 串行前缀平衡准确率 | Argmax 一致率 |
+|---|---:|---:|---:|
+| 自编数据，144 行 | 0.803 | 0.813 | 138/144（95.8%） |
+| 扰动数据，108 行 | 0.775 | 0.780 | 105/108（97.2%） |
+
+GGUF 减 BF16 的配对差值在自编数据上为 -0.010（按源分组 bootstrap 的 95%
+区间为 -0.036 到 0.015），在扰动数据上为 -0.004（-0.028 到 0.017）。这些结果只说明
+在两个项目自有集合上测得的退化很小，不代表 Q4_K_M 与 BF16 在一般情况下等价。
+BF16 参考使用状态前缀复用，而 llama.cpp 评估全新 prompt；因此这里比较的是完整 runtime
+路径，没有单独隔离量化影响。
+
+另一项公共 SDK safeguard 冒烟测试在 warmup 和七次测量中都选择了 `block`、
+`critical` 和 `true`。模型构造耗时 4.05 秒；完整三项决策调用的中位耗时为 2.344 秒，
+即 1.28 decisions/s，所有决策的输出 token 数均为 0。整卡 GPU 显存在加载前为
+82 MiB，加载后为 4,003 MiB，测量后为 4,085 MiB。runtime 报告支持 CUDA GPU
+offload，并请求将全部层放到 GPU。
+
+README 将这项结果与历史 Torch/vLLM 测量并列，以展示实际 backend 取舍，但不计算
+直接速度倍率：其 prompt 不同，而且当前 llama.cpp 后端会串行执行三个请求。已提交的
+[SDK 记录](../results/raw/llama-cpp-qwen3.5-4b-q4-k-m-rtx5090-sdk.json)、
+[自编数据评估](../results/raw/llama-cpp-qwen3.5-4b-q4-k-m-authored144.json)和
+[扰动数据评估](../results/raw/llama-cpp-qwen3.5-4b-q4-k-m-perturbations108.json)
+保留环境、原始计时、逐行错误和 bootstrap 结果。
+
 ### 稳健性与置信度
 
 在 36 个项目自有基础 case 上，直接 logits 的各族平均平衡准确率为 0.723，reranker 为 0.530。对保留语义的变体：
