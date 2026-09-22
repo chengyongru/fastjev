@@ -14,13 +14,13 @@
 
 </div>
 
-FastJev 是面向自部署的 [Jev](https://docs.typesafe.ai/) 开源实现，也是 [SemIf](https://github.com/TheoLeeCJ/SemIf) 的持续维护分支。固定 revision 的开放模型通过 Torch、vLLM、MLX 和 llama.cpp 运行 `Choice`、`Boolean` 和 `Score` 接口。WebGPU demo 提供浏览器本地推理。
+FastJev 是面向自部署的 [Jev](https://docs.typesafe.ai/) 开源实现，也是 [SemIf](https://github.com/TheoLeeCJ/SemIf) 的持续维护分支。固定 revision 的开放模型通过 Torch、vLLM、MLX、llama.cpp 和可选 EXL3 量化运行 `Choice`、`Boolean` 和 `Score` 接口。WebGPU demo 提供浏览器本地推理。
 
 ## 为什么选择 FastJev？
 
 FastJev 把 Jev 自部署收敛为标准 Python 工作流。SDK 负责加载模型、验证 2 至 16 个选项、执行评分，并返回包含概率、token 用量、耗时、模型 revision 和 prompt 版本的类型化结果。
 
-常驻 Torch、批量 vLLM、原生 MLX、llama.cpp GGUF、CLI 和可选的 System One 兼容 HTTP API 共享同一结果模型。Torch、MLX 和 llama.cpp 在一次评分中返回结果，输出 token 数量为 0。
+常驻 Torch、批量 vLLM、原生 MLX、llama.cpp GGUF、EXL3、CLI 和可选的 System One 兼容 HTTP API 共享同一结果模型。Torch、MLX、llama.cpp 和 EXL3 在一次评分中返回结果，输出 token 数量为 0。
 
 每项结果都记录模型 revision 和 prompt 版本。已发布评估还包含逐行数据、原始计时和校验和，用于精确复现。
 
@@ -38,7 +38,7 @@ FastJev 把 Jev 自部署收敛为标准 Python 工作流。SDK 负责加载模�
 
 ## 快速开始
 
-默认后端需要 Python 3.10+、CUDA 和一块可见 GPU。Qwen3.5-4B 源 checkpoint 占用约 9 GB 磁盘。历史 [RTX 5090 SDK 冒烟测试](https://github.com/chengyongru/fastjev/pull/5)测得峰值 GPU 分配为 7.891 GiB。
+默认后端需要 Python 3.10+，以及恰好一块可见 CUDA GPU 或 Apple Silicon MPS。`device="auto"` 会优先选择 CUDA，否则选择 MPS。Qwen3.5-4B 源 checkpoint 占用约 9 GB 磁盘。历史 [RTX 5090 SDK 冒烟测试](https://github.com/chengyongru/fastjev/pull/5)测得峰值 GPU 分配为 7.891 GiB。
 
 ```bash
 python -m venv .venv
@@ -72,7 +72,7 @@ print(result.provenance)
 
 远程模型使用不可变的 40 字符 Hugging Face revision。本地模型目录使用描述性 revision 标签记录结果来源。
 
-使用本地或 Hugging Face 托管的 GGUF 文件时安装 `fastjev[llama-cpp]`。[Python SDK 指南](docs/SDK.zh-CN.md)介绍 llama.cpp 的设置与来源记录。
+使用本地或 Hugging Face 托管的 GGUF 文件时安装 `fastjev[llama-cpp]`。[Python SDK 指南](docs/SDK.zh-CN.md)介绍 Apple Silicon、EXL3、llama.cpp 前缀复用、校准与来源记录。
 
 ### 安装最新源码
 
@@ -133,9 +133,11 @@ Torch 与 vLLM 两行共享另一组完全相同的 125、152 和 151-token prom
 | Runtime | 安装 | 适用场景 |
 |---|---|---|
 | PyTorch/CUDA | `pip install 'fastjev[torch]'` | 默认直接 logits 评分 |
+| PyTorch/MPS | `pip install 'fastjev[torch]'` | Apple Silicon 原生 Transformers 推理 |
 | vLLM/CUDA | `pip install 'fastjev[vllm]'` | 批量常驻服务 |
 | MLX/Apple Silicon | 查看 [MLX 指南](docs/MLX.zh-CN.md) | 原生 macOS arm64 推理 |
 | llama.cpp/GGUF | `pip install 'fastjev[llama-cpp]'` | 本地或 Hugging Face 托管的 GGUF 文件 |
+| ExLlamaV3/EXL3 | `pip install 'fastjev[exl3]'` | 在 NVIDIA GPU 上运行更大的量化模型 |
 | WebGPU/GGUF | 打开[浏览器 demo](webgpu-demo/index.html) | 浏览器本地推理 |
 
 使用 `fastjev-score` 处理 JSONL。安装 `fastjev[api,torch]` 并运行 `fastjev-serve`，即可提供 `POST /v1/systemone` 和 `GET /v1/models`。[SDK 指南](docs/SDK.zh-CN.md)介绍 batching 和自定义后端。[HTTP 指南](docs/SYSTEM_ONE_API.zh-CN.md)介绍服务配置、认证与兼容边界。
@@ -145,11 +147,11 @@ Torch 与 vLLM 两行共享另一组完全相同的 125、152 和 151-token prom
 
 ## 文档
 
-[结果文档](docs/RESULTS.zh-CN.md)介绍速度、质量、扰动测试和限制。[方法文档](docs/METHOD.zh-CN.md)记录固定 prompt、指标和计时范围。[复现指南](docs/REPRODUCE.zh-CN.md)提供固定环境和验证命令。[基准包](benchmarks/README.zh-CN.md)包含 fixture、runner 和来源选择。[交互回放](demo/index.html)与[纯浏览器 WebGPU demo](webgpu-demo/index.html)用于可视化浏览项目。
+[结果文档](docs/RESULTS.zh-CN.md)介绍速度、质量、扰动测试和限制。[校准报告](docs/CALIBRATION.zh-CN.md)介绍按工作负载绑定的温度缩放。[方法文档](docs/METHOD.zh-CN.md)记录固定 prompt、指标和计时范围。[复现指南](docs/REPRODUCE.zh-CN.md)提供固定环境和验证命令。[基准包](benchmarks/README.zh-CN.md)包含 fixture、runner 和来源选择。[交互回放](demo/index.html)与[纯浏览器 WebGPU demo](webgpu-demo/index.html)用于可视化浏览项目。
 
 ## 使用边界与来源
 
-FastJev 返回以所给选项为条件的概率，并标记 `calibrated=False`。实际部署工作负载上的验证与校准用于建立高影响自动化阈值。实验性的共享前缀模式可能改变接近决策边界的 BF16 argmax。
+FastJev 返回以所给选项为条件的概率。只有显式附加与身份绑定的 `TemperatureCalibration` 后，结果才会标记为已校准；不得跨工作负载、backend、模型 revision 或 prompt version 复用校准参数。Torch 的实验性共享前缀模式可能改变接近决策边界的 BF16 argmax；llama.cpp 前缀复用同样需要显式开启，默认关闭。
 
 模型权重保存在上游站点，第三方评估记录保存在原始来源。上游模型沿用各自许可证，精确 revision 记录在[第三方清单](THIRD_PARTY.zh-CN.md)。
 

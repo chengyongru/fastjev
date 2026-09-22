@@ -145,6 +145,15 @@ def decision_record(decision) -> dict:
             "prompt_version": decision.provenance.prompt_version,
             "probability_status": decision.provenance.probability_status,
         },
+        "calibration": (
+            None
+            if decision.calibration is None
+            else {
+                "method": decision.calibration.method,
+                "temperature": decision.calibration.temperature,
+                "workload": decision.calibration.workload,
+            }
+        ),
     }
 
 
@@ -169,6 +178,7 @@ def main() -> None:
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--repeats", type=int, default=7)
     parser.add_argument("--n-batch", type=int, default=512)
+    parser.add_argument("--prefix-reuse", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists():
@@ -192,6 +202,7 @@ def main() -> None:
         revision=args.revision,
         n_batch=args.n_batch,
         n_gpu_layers=-1,
+        prefix_reuse=args.prefix_reuse,
     )
     load_seconds = time.perf_counter() - load_started
     after_load = gpu_snapshot()
@@ -225,6 +236,7 @@ def main() -> None:
             **llama_runtime(),
             "n_gpu_layers": -1,
             "n_batch": args.n_batch,
+            "prefix_reuse": args.prefix_reuse,
         },
         "model": {
             "source_repo": MODEL_REPO,

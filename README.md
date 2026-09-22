@@ -18,7 +18,7 @@ FastJev is an open source implementation of
 [Jev](https://docs.typesafe.ai/) for deployment on infrastructure you control.
 It continues [SemIf](https://github.com/TheoLeeCJ/SemIf) as an independently
 maintained fork. Pinned open models run the `Choice`, `Boolean`, and `Score`
-interface through Torch, vLLM, MLX, and llama.cpp. The WebGPU demo provides
+interface through Torch, vLLM, MLX, llama.cpp, and optional EXL3 quantization. The WebGPU demo provides
 browser local inference.
 
 ## Why FastJev?
@@ -27,9 +27,9 @@ FastJev turns Jev deployment into a standard Python workflow. The SDK loads the
 model, validates 2 to 16 options, performs scoring, and returns typed results
 with probabilities, token usage, timing, model revision, and prompt version.
 
-Resident Torch, batched vLLM, native MLX, llama.cpp GGUF, the CLI, and the
+Resident Torch, batched vLLM, native MLX, llama.cpp GGUF, EXL3, the CLI, and the
 optional System One compatible HTTP API share the same result model. Torch,
-MLX, and llama.cpp return results in one scoring pass with zero output tokens.
+MLX, llama.cpp, and EXL3 return results in one scoring pass with zero output tokens.
 
 Each result records the model revision and prompt version. Published
 evaluations add row data, raw timings, and checksums for reproducibility.
@@ -51,7 +51,8 @@ in the [model ladder report](results/raw/browser-model-ladder.json).
 
 ## Quick start
 
-The default backend requires Python 3.10+, CUDA, and exactly one visible GPU.
+The default backend requires Python 3.10+ and either exactly one visible CUDA GPU
+or Apple Silicon MPS. `device="auto"` prefers CUDA and otherwise selects MPS.
 Qwen3.5-4B uses about 9 GB of disk for the source checkpoint and measured
 7.891 GiB peak allocated GPU memory in the historical
 [RTX 5090 SDK smoke run](https://github.com/chengyongru/fastjev/pull/5).
@@ -91,7 +92,8 @@ Remote models use an immutable Hugging Face revision containing 40 characters.
 Local model directories use a descriptive revision label for result provenance.
 
 Install `fastjev[llama-cpp]` to run GGUF files from disk or Hugging Face. The
-[Python SDK guide](docs/SDK.md) covers llama.cpp setup and provenance.
+[Python SDK guide](docs/SDK.md) covers Apple Silicon, EXL3, llama.cpp prefix reuse,
+calibration, and provenance.
 
 ### Install the latest source
 
@@ -166,9 +168,11 @@ belongs to their own workloads.
 | Runtime | Install | Best for |
 |---|---|---|
 | PyTorch/CUDA | `pip install 'fastjev[torch]'` | Default scoring from logits |
+| PyTorch/MPS | `pip install 'fastjev[torch]'` | Native Transformers inference on Apple Silicon |
 | vLLM/CUDA | `pip install 'fastjev[vllm]'` | Batched resident services |
 | MLX/Apple Silicon | See the [MLX guide](docs/MLX.md) | Native macOS arm64 inference |
 | llama.cpp/GGUF | `pip install 'fastjev[llama-cpp]'` | GGUF files from disk or Hugging Face |
+| ExLlamaV3/EXL3 | `pip install 'fastjev[exl3]'` | Larger quantized models on NVIDIA GPUs |
 | WebGPU/GGUF | Open the [browser demo](webgpu-demo/index.html) | Inference in the browser |
 
 Use `fastjev-score` for JSONL jobs. Install `fastjev[api,torch]` and run
@@ -183,7 +187,8 @@ documented modules are part of the supported public API.
 ## Documentation
 
 The [results report](docs/RESULTS.md) covers speed, quality, perturbations, and
-limitations. The [method guide](docs/METHOD.md) documents frozen prompts,
+limitations. The [calibration report](docs/CALIBRATION.md) covers workload-scoped
+temperature scaling. The [method guide](docs/METHOD.md) documents frozen prompts,
 metrics, and timing scope. The [reproduction guide](docs/REPRODUCE.md) provides
 pinned environments and verification commands. The
 [benchmark bundle](benchmarks/README.md) contains fixtures, runners, and source
@@ -193,11 +198,11 @@ the project.
 
 ## Boundaries and provenance
 
-FastJev returns probabilities conditioned on the supplied options with
-`calibrated=False`.
-Deployment validation and calibration establish thresholds for consequential
-automation. The experimental shared prefix modes can change close BF16 argmax
-results.
+FastJev returns probabilities conditioned on the supplied options. They remain
+`calibrated=False` unless an identity-bound `TemperatureCalibration` is explicitly
+attached. Calibration fitted for another workload, backend, model revision, or prompt
+version must not be reused. The experimental Torch shared-prefix modes can change close
+BF16 argmax results; llama.cpp prefix reuse is also explicit and disabled by default.
 
 Model weights stay on upstream hosts, and third party evaluation records stay
 with their original sources. Upstream models retain their licenses. Exact

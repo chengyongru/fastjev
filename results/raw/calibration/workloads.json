@@ -1,0 +1,14 @@
+{
+  "authored144": {
+    "gold": "benchmarks/data/authored144.jsonl",
+    "predictions": "results/raw/predictions/direct-authored144.jsonl"
+  },
+  "wanli256": {
+    "gold": "build/gold-wanli256.jsonl",
+    "predictions": "results/raw/predictions/direct-wanli256.jsonl"
+  },
+  "every154": {
+    "gold": "build/every/gold154.jsonl",
+    "predictions": "results/raw/predictions/direct-every204.jsonl"
+  }
+}

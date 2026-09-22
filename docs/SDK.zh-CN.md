@@ -6,13 +6,13 @@
 
 ## 加载内置 Torch backend
 
-使用内置 CUDA 路径时，安装项目及 Torch 依赖。第三方 backend 可以只安装无依赖的核心包。
+使用 CUDA 或 Apple MPS 路径时，安装项目及 Torch 依赖。第三方 backend 可以只安装无依赖的核心包。
 
 ```bash
 pip install 'fastjev[torch]'
 ```
 
-`from_pretrained` 是直接 logits Torch/CUDA backend 的便利构造器：
+`from_pretrained` 是直接 logits Torch backend 的便利构造器：
 
 ```python
 from fastjev import Choice, FastJev, Option
@@ -37,6 +37,22 @@ print(result.value)
 print(result.probabilities)
 jev.close()
 ```
+
+`device="auto"` 会优先选择一块可见 CUDA GPU，否则选择 MPS。如果部署必须使用
+Apple Silicon，显式指定设备可以避免意外回退：
+
+```python
+jev = FastJev.from_pretrained(
+    "Qwen/Qwen3.5-4B",
+    revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    device="mps",
+    dtype="float16",
+)
+```
+
+支持 `bfloat16`、`float16` 和 `float32`；实际可用组合仍取决于模型与 macOS。
+direct、serial 和 shared 选项评分支持 MPS，reranker 仍只支持 CUDA。shared 模式在
+MPS 上使用独立的 batch-one suffix，因为该执行形态在 Apple GPU 上更快。
 
 当 engine 生命周期有明确作用域时，可将 `FastJev` 用作 context manager。关闭 engine 会关闭 backend，并拒绝后续决策；内置 backend 会释放模型与 tokenizer 引用，但不修改全局 accelerator 状态。
 
@@ -90,6 +106,54 @@ backend = LlamaCppBackend.from_pretrained(
 
 显式文件名可以避免 fastjev 在仓库的多个量化版本之间擅自选择。本地文件的 `revision` 是 provenance 标签；两种来源都会记录解析后的工件路径和 GGUF SHA-256。量化 GGUF 的质量和延迟需要独立于 BF16 Torch baseline 重新验证。
 
+如果一次 `decide_many` 的所有问题共享完全相同的 state，可显式开启 llama.cpp
+state-prefix 复用：
+
+```python
+backend = LlamaCppBackend.from_pretrained(
+    "bartowski/Qwen_Qwen3.5-4B-GGUF",
+    revision="4168f45a16a1290d65a4ec0fa312ae917a4c15d6",
+    filename="Qwen_Qwen3.5-4B-Q4_K_M.gguf",
+    n_gpu_layers=-1,
+    prefix_reuse=True,
+)
+```
+
+backend 只计算一次 state 前缀，保存 llama.cpp sequence state，并在每个问题 suffix
+前恢复它。默认仍为完整 prompt direct 评分，应用需要明确接受这项内存与延迟取舍。
+
+## 加载可选 EXL3 backend
+
+EXL3 通过 ExLlamaV3 在 NVIDIA GPU 上运行更大的量化 checkpoint，同时保持相同的
+类型化 SDK 和零输出 token 选项读数：
+
+```bash
+pip install 'fastjev[exl3]'
+```
+
+PyPI 上的 ExLlamaV3 会构建 CUDA extension。部署机器通常更适合安装
+[匹配的预编译 release wheel](https://github.com/turboderp-org/exllamav3/releases)：
+先按 Python、PyTorch、CUDA、操作系统与架构选择 wheel，再安装 FastJev。
+
+```python
+from fastjev import ExLlamaV3Backend, FastJev
+
+backend = ExLlamaV3Backend.from_pretrained(
+    "turboderp/Qwen3.8-27B-exl3",
+    revision="a35e75a73baee51da709329d19294245cbeeb5d8",
+    cache_size=16384,
+    gpu_split=22.5,
+)
+
+with FastJev(backend) as jev:
+    answers = jev.decide_many(state, questions)
+```
+
+`gpu_split` 是分配给单块可见 GPU 的 GiB 数。远程仓库必须提供不可变的 40 字符
+revision，本地 EXL3 目录则提供 provenance 标签。FastJev 使用模型的 Hugging Face
+chat template，验证答案槽位是边界稳定的精确单 token，并拒绝超过公共输入上限或
+EXL3 cache 容量的 prompt。
+
 ## 加载可选 vLLM backend
 
 在受支持的 CUDA 主机上安装独立固定版本的 vLLM runtime：
@@ -139,6 +203,35 @@ export VLLM_USE_FLASHINFER_SAMPLER=0
 
 这些开关只选择 vLLM 内部实现，不会改变 fastjev backend 合约或决策语义。
 
+## 校准一个部署工作负载
+
+原始选项得分只以声明的选项为条件，并不是通用置信度。`TemperatureCalibration`
+只会在核对用于拟合的 backend、模型、revision 与 prompt version 后应用一个正温度：
+
+```python
+from fastjev import CalibrationSample, FastJev, TemperatureCalibration
+
+profile = TemperatureCalibration.fit(
+    [
+        CalibrationSample((0.90, 0.10), correct_index=0),
+        CalibrationSample((0.80, 0.20), correct_index=1),
+    ],
+    workload="support-routing-v3",
+    backend=backend.info.name,
+    model=backend.info.model,
+    revision=backend.info.revision,
+    prompt_version="direct-options-v1",
+)
+
+jev = FastJev(backend, calibration=profile)
+```
+
+应使用能代表生产工作负载的有标签样本拟合，并在分组隔离的留出集上评估。温度缩放
+改变置信度，但不改变选项顺序。返回的 `Decision.calibration` 会记录方法、温度与
+workload，`uncertainty.calibrated` 变为 `True`。身份或 prompt 不匹配时会直接失败，
+不会静默套用无关 profile。[校准报告](CALIBRATION.zh-CN.md)收录离线交叉验证方法与
+冻结证据。
+
 ## 类型化问题
 
 所有问题都会编译为同一种 backend-neutral categorical request：
@@ -162,11 +255,11 @@ answers = jev.decide_many(state, {
 })
 ```
 
-`FastJev` 会串行调用 backend，避免并发使用同一个常驻模型。vLLM backend 会批量处理一次 `decide_many` 收到的所有请求；内置 Torch、MLX 和 llama.cpp backend 当前仍按顺序评估这些请求。
+`FastJev` 会串行调用 backend，避免并发使用同一个常驻模型。vLLM backend 会批量处理一次 `decide_many` 收到的所有请求；EXL3 会按顺序执行。Torch 与 MLX 提供独立的实验性 shared-prefix 模式；llama.cpp 在 `prefix_reuse=True` 时复用完全相同的 state 前缀。
 
 ## Backend 协议
 
-engine 不导入 Torch、MLX、Transformers、llama.cpp 或 vLLM，只依赖可在运行时检查的 `ScoringBackend` 协议：
+engine 不导入 Torch、MLX、Transformers、llama.cpp、ExLlamaV3 或 vLLM，只依赖可在运行时检查的 `ScoringBackend` 协议：
 
 ```python
 from typing import Sequence
@@ -203,7 +296,7 @@ backend 负责模型加载、prompt 执行、batching 和资源清理。它必�
 
 backend 特定的选项限制写入 `BackendCapabilities`。领域类型本身不嵌入 Torch 内置上限，因此未来 backend 可以支持不同选项数量，而无需改变公共决策 API。
 
-内置实现包括 `TorchBackend`、`MLXBackend`、`LlamaCppBackend` 和 `VLLMBackend`。`FastJev.from_pretrained` 继续作为 Torch 便利入口；其他 runtime 通过显式依赖注入接入。
+内置实现包括 `TorchBackend`、`MLXBackend`、`LlamaCppBackend`、`ExLlamaV3Backend` 和 `VLLMBackend`。`FastJev.from_pretrained` 继续作为 Torch 便利入口；其他 runtime 通过显式依赖注入接入。
 
 ## 包命名空间
 
@@ -221,8 +314,9 @@ backend 特定的选项限制写入 `BackendCapabilities`。领域类型本身�
 - backend 提供时的 `timing`；
 - 模型、revision、backend、prompt version 和概率状态 `provenance`；
 - `uncertainty` 中的归一化分布熵。
+- 已应用的温度元数据 `calibration`；原始得分为 `None`。
 
-分布以声明的选项为条件。`uncertainty.normalized_entropy` 从尖锐分布的零变化到均匀分布的一，且 `uncertainty.calibrated` 为 `False`。在自动执行重要操作前，请在部署工作负载上验证阈值。
+分布以声明的选项为条件。`uncertainty.normalized_entropy` 从尖锐分布的零变化到均匀分布的一。只有应用了身份绑定的 profile 时，`uncertainty.calibrated` 才为 `True`。在自动执行重要操作前，请在部署工作负载上验证阈值。
 
 ## System One 兼容层
 
