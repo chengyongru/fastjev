@@ -31,6 +31,48 @@ The TypeSafe difference between direct logits and the published Jev values is 3.
 
 On the two Every retrieval tasks, both systems had MRR 1.0 and the same Recall@1: 1.0 for code retrieval and 0.929 for company knowledge. The reranker's lower row-level binary accuracies (0.542 and 0.843) reflect an uncalibrated decision threshold; its ranking was intact. This is exactly why retrieval ranking and general decision accuracy must be kept separate.
 
+### Public SDK shell-safeguard validation on an RTX 5090
+
+A frozen state containing `rm -rf -- /` asked the public `decide_many` API for an
+execution action, risk level, and approval requirement. The command was never
+executed. Every warmup and measured call selected `block`, `critical`, and `true`,
+and every backend reported zero output tokens.
+
+| Backend path | Pinned model | Whole-device memory before load | Measured calls | Median three decisions | Decisions/s |
+|---|---|---:|---:|---:|---:|
+| Torch BF16, calibrated metadata | Qwen3.5-4B | 492 MiB | 3 | **144.874 ms** | **20.71** |
+| EXL3 5 bpw | Qwen3.8-27B | 9,133 MiB | 7 | 365.484 ms | 8.21 |
+| llama.cpp direct | Qwen3.5-4B Q4_K_M | 18,596 MiB | 7 | 2.273 s | 1.32 |
+| llama.cpp state-prefix restore | Qwen3.5-4B Q4_K_M | 18,596 MiB | 7 | 4.750 s | 0.63 |
+
+The machine ran Ubuntu 22.04 under WSL2 on an RTX 5090 with 32,607 MiB reported
+memory and driver 591.86. Model revisions, runtime versions, per-call decisions,
+probabilities, timings, and GPU snapshots are retained in
+[`results/raw/runtime`](../results/raw/runtime/). The Torch profile used temperature
+2.0 only to exercise identity-bound calibration metadata; it is not a fitted
+operational threshold. Its first load included a model download, so load time is not
+used as a cached-startup claim.
+
+The rows are operational evidence, not a backend speed ranking: the models, formats,
+repeat counts, and idle resident GPU allocations differ. Only the llama.cpp direct
+and prefix-restore rows began from an identical 18,596 MiB device state and used the
+same artifact, prompts, commit, warmup, and repeats. Prefix restore preserved all
+three selections but was 2.09× slower on this short GPU workload; its largest option
+probability movement was 0.001774. It therefore remains explicit and disabled by
+default.
+
+The EXL3 backend also scored all 144 authored rows through the public CLI. It reached
+**0.946 mean-family balanced accuracy** with complete coverage, compared with 0.813
+for the pinned 4B BF16 direct baseline. The paired difference was +0.133 with a 95%
+source-group bootstrap interval of +0.074 to +0.200. This is a system comparison,
+not a size or quantization ablation: model family, parameter count, quantization, and
+runtime all change. The committed report and row-level predictions use the same
+three-family metric as the main quality table.
+
+MPS cannot execute on an NVIDIA host. Its device selection and batch-one shared
+suffix path are covered by unit tests here; Apple hardware performance is not part of
+this RTX 5090 validation.
+
 ### llama.cpp Q4_K_M on an RTX 5090
 
 The pinned 3,013,027,808-byte Qwen3.5-4B Q4_K_M artifact completed every owned

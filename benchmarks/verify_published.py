@@ -38,6 +38,11 @@ def main():
     gguf_authored = load("results/raw/llama-cpp-qwen3.5-4b-q4-k-m-authored144.json")
     gguf_perturbations = load("results/raw/llama-cpp-qwen3.5-4b-q4-k-m-perturbations108.json")
     gguf_sdk = load("results/raw/llama-cpp-qwen3.5-4b-q4-k-m-rtx5090-sdk.json")
+    torch_smoke = load("results/raw/runtime/rtx5090-torch-qwen3.5-4b-shell-calibrated.json")
+    exl3_smoke = load("results/raw/runtime/rtx5090-exl3-qwen3.8-27b-shell.json")
+    exl3_report = load("results/raw/runtime/rtx5090-exl3-qwen3.8-27b-authored144-report.json")
+    llama_direct = load("results/raw/runtime/rtx5090-llama-cpp-q4-k-m-direct-shell.json")
+    llama_prefix = load("results/raw/runtime/rtx5090-llama-cpp-q4-k-m-prefix-shell.json")
     checks = 0
 
     semantic = summary["semantic_quality"]
@@ -192,6 +197,87 @@ def main():
     if gpu["before_load"]["gpus"][0]["memory_used_mib"] != 82 or gpu["after_load"]["gpus"][0]["memory_used_mib"] != 4003:
         raise AssertionError("SDK README GPU-memory claims disagree")
     checks += 8
+
+    exl3_predictions = rows(
+        "results/raw/runtime/rtx5090-exl3-qwen3.8-27b-authored144.predictions.jsonl"
+    )
+    authored_ids = {row["id"] for row in rows("benchmarks/data/authored144.jsonl")}
+    if len(exl3_predictions) != 144 or {row["id"] for row in exl3_predictions} != authored_ids:
+        raise AssertionError("Incomplete EXL3 authored evidence")
+    if any(
+        row["output_tokens"] != 0
+        or row["prompt_version"] != "direct-options-v1"
+        or row["model"]["backend"] != "exl3"
+        or row["model"]["revision"] != "a35e75a73baee51da709329d19294245cbeeb5d8"
+        or row["model"]["exllamav3_version"] != "1.5.1"
+        for row in exl3_predictions
+    ):
+        raise AssertionError("Invalid EXL3 authored provenance")
+    close(exl3_report["coverage"], 1.0)
+    close(exl3_report["scored"], 144)
+    if round(exl3_report["mean_family_balanced_accuracy"], 3) != 0.946:
+        raise AssertionError("Unexpected rounded EXL3 authored accuracy")
+    if round(exl3_report["paired_comparison"]["difference"], 3) != 0.133:
+        raise AssertionError("Unexpected rounded EXL3 paired difference")
+    checks += 6
+
+    for smoke, backend, repeats in (
+        (torch_smoke, "torch", 3),
+        (exl3_smoke, "exl3", 7),
+    ):
+        measurements = smoke["measurements"]
+        median = statistics.median(row["wall_seconds"] for row in measurements)
+        close(smoke["summary"]["median_batch_seconds"], median)
+        close(smoke["summary"]["decisions_per_second_at_median"], 3 / median)
+        if smoke["runtime"]["backend"] != backend or len(measurements) != repeats:
+            raise AssertionError(f"Unexpected {backend} smoke runtime or repeat count")
+        if not smoke["summary"]["all_expected_selections"] or not smoke["summary"]["all_output_tokens_zero"]:
+            raise AssertionError(f"{backend} safeguard smoke failed")
+        checks += 4
+    if not torch_smoke["summary"]["calibration_applied"]:
+        raise AssertionError("Torch calibration smoke did not apply its profile")
+    if round(torch_smoke["summary"]["median_batch_milliseconds"], 3) != 144.874:
+        raise AssertionError("Torch smoke timing claim disagrees")
+    if exl3_smoke["runtime"]["exllamav3"] != "1.5.1+cu128.torch2.10.0":
+        raise AssertionError("EXL3 wheel provenance disagrees")
+    if round(exl3_smoke["summary"]["median_batch_milliseconds"], 3) != 365.484:
+        raise AssertionError("EXL3 smoke timing claim disagrees")
+    checks += 4
+
+    for smoke, prefix_reuse, rounded_seconds in (
+        (llama_direct, False, 2.273),
+        (llama_prefix, True, 4.750),
+    ):
+        measurements = smoke["measurements"]
+        median = statistics.median(row["wall_seconds"] for row in measurements)
+        close(smoke["summary"]["median_batch_seconds"], median)
+        if smoke["runtime"]["prefix_reuse"] is not prefix_reuse:
+            raise AssertionError("llama.cpp prefix-reuse provenance disagrees")
+        if len(measurements) != 7 or round(median, 3) != rounded_seconds:
+            raise AssertionError("llama.cpp comparison timing claim disagrees")
+        if not smoke["summary"]["all_expected_selections"] or not smoke["summary"]["all_output_tokens_zero"]:
+            raise AssertionError("llama.cpp comparison safeguard smoke failed")
+        checks += 4
+    direct_gpu = llama_direct["gpu"]["before_load"]["gpus"][0]
+    prefix_gpu = llama_prefix["gpu"]["before_load"]["gpus"][0]
+    if direct_gpu != prefix_gpu or direct_gpu["memory_used_mib"] != 18596:
+        raise AssertionError("llama.cpp comparison did not start under the same GPU conditions")
+    if round(llama_prefix["summary"]["median_batch_seconds"] / llama_direct["summary"]["median_batch_seconds"], 2) != 2.09:
+        raise AssertionError("llama.cpp prefix-reuse ratio claim disagrees")
+    max_probability_delta = 0.0
+    for key in ("execution", "risk", "approval"):
+        direct = llama_direct["measurements"][0]["decisions"][key]
+        prefix = llama_prefix["measurements"][0]["decisions"][key]
+        if direct["selected"] != prefix["selected"]:
+            raise AssertionError("llama.cpp prefix reuse changed a safeguard selection")
+        max_probability_delta = max(
+            max_probability_delta,
+            *(abs(left["probability"] - right["probability"])
+              for left, right in zip(direct["probabilities"], prefix["probabilities"])),
+        )
+    if round(max_probability_delta, 6) != 0.001774:
+        raise AssertionError("llama.cpp prefix-reuse probability delta claim disagrees")
+    checks += 3
     print(json.dumps({"verified_summary_claims": checks, "status": "ok"}))
 
 
