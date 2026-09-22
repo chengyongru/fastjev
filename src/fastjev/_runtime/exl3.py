@@ -54,7 +54,7 @@ def _runtime_version() -> str:
 def _encode_ids(tokenizer, text: str) -> list[int]:
     import torch
 
-    encoded = tokenizer.encode(text)
+    encoded = tokenizer.encode(text, encode_special_tokens=True)
     if isinstance(encoded, tuple):
         encoded = encoded[0]
     if isinstance(encoded, torch.Tensor):
@@ -218,4 +218,3 @@ def score(runtime: Runtime, tokenizer, row: dict, metadata: dict, max_tokens: in
             "conditional option score over quantized weights; uncalibrated as decision confidence"
         ),
     }
-

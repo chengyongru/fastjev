@@ -46,6 +46,7 @@ vllm = [
   "vllm==0.29.0",
 ]
 exl3 = [
+  "setuptools==80.10.2",
   "torch==2.10.0",
   "transformers==5.17.0",
   "huggingface-hub==1.31.0",
