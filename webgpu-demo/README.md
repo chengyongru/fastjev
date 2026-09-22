@@ -20,6 +20,8 @@ python3 -m http.server 8080
 
 Open `http://localhost:8080` in a current WebGPU-capable browser. Depending on the selected model, expect 639 MB, 1.56 GB, or 3.01 GB on first load. Browser caching controls repeat downloads. The page reports a clear compatibility message before any download begins.
 
+The interface supports English and Simplified Chinese. It follows the browser language on first visit; the language selector in the header overrides that choice and stores the preference locally. Switching languages also updates status, progress, validation, and known worker errors. An untouched example is translated with the interface, while edited decision inputs are preserved.
+
 For deployment, any static HTTPS host is sufficient. No build step, API, database, telemetry, or server-side inference is used. wllama 3.6.1 is vendored; Vue and Material Symbols load from pinned CDN URLs.
 
 Keep `_headers` when deploying to Cloudflare. It applies `Referrer-Policy: no-referrer`, matching the page and worker policy, so direct cross-origin Hugging Face asset requests do not carry the hosting URL as a referrer.
