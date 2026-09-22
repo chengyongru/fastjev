@@ -8,6 +8,7 @@ from .backends import (
     BackendOption,
     BackendRequest,
     BackendResult,
+    ExLlamaV3Backend,
     LlamaCppBackend,
     MLXBackend,
     ScoringBackend,
@@ -15,6 +16,7 @@ from .backends import (
     VLLMBackend,
 )
 from .client import FastJev
+from .calibration import CalibrationSample, TemperatureCalibration
 from .compat import SystemOneAdapter
 from .errors import (
     BackendProtocolError,
@@ -26,6 +28,7 @@ from .errors import (
 )
 from .types import (
     Boolean,
+    Calibration,
     Choice,
     Decision,
     Level,
@@ -58,8 +61,11 @@ __all__ = [
     "BackendRequest",
     "BackendResult",
     "Boolean",
+    "Calibration",
+    "CalibrationSample",
     "Choice",
     "Decision",
+    "ExLlamaV3Backend",
     "FastJev",
     "FastJevError",
     "InputTooLongError",
@@ -76,6 +82,7 @@ __all__ = [
     "SystemOneAdapter",
     "SystemOneValidationError",
     "Timing",
+    "TemperatureCalibration",
     "TorchBackend",
     "Uncertainty",
     "Usage",

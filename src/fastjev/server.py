@@ -11,7 +11,11 @@ from .compat.wire import SystemOneService
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--backend", choices=("torch", "mlx", "llama-cpp"), default="torch")
+    parser.add_argument("--backend", choices=("torch", "mlx", "llama-cpp", "exl3"), default="torch")
+    parser.add_argument("--device", choices=("auto", "cuda", "mps"), default="auto",
+                        help="Torch accelerator; auto prefers CUDA and otherwise uses MPS")
+    parser.add_argument("--dtype", choices=("bfloat16", "float16", "float32"),
+                        default="bfloat16", help="Torch model dtype")
     parser.add_argument("--model", required=True, help="Hugging Face model ID, local checkpoint, or GGUF file")
     parser.add_argument("--revision", required=True)
     parser.add_argument("--served-model", required=True, help="Model ID accepted by the HTTP API")
@@ -28,6 +32,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--llama-cpp-n-batch", type=int, default=512)
     parser.add_argument("--llama-cpp-filename",
                         help="Exact GGUF filename when --model is a Hugging Face repo ID")
+    parser.add_argument("--llama-cpp-prefix-reuse", action="store_true",
+                        help="Reuse one exact state prefix across a multi-question request")
+    parser.add_argument("--exl3-cache-size", type=int, default=16384)
+    parser.add_argument("--exl3-gpu-split", type=float, default=22.5)
     return parser
 
 
@@ -40,6 +48,10 @@ def _validate_args(parser: argparse.ArgumentParser, args) -> str | None:
         parser.error("--llama-cpp-n-gpu-layers must be -1 or nonnegative")
     if n_batch < 1:
         parser.error("--llama-cpp-n-batch must be positive")
+    if getattr(args, "exl3_cache_size", 16384) < 2:
+        parser.error("--exl3-cache-size must be at least 2")
+    if getattr(args, "exl3_gpu_split", 22.5) <= 0:
+        parser.error("--exl3-gpu-split must be positive")
     if getattr(args, "llama_cpp_filename", None) is not None and args.backend != "llama-cpp":
         parser.error("--llama-cpp-filename requires --backend llama-cpp")
     if not 1 <= args.port <= 65535:
@@ -90,13 +102,32 @@ def _scorer(args):
             n_gpu_layers=args.llama_cpp_n_gpu_layers,
         )
         direct = llama_cpp.score
+        shared = llama_cpp.score_shared
+    elif args.backend == "exl3":
+        from ._runtime import exl3
+
+        model, tokenizer, metadata = exl3.load_model(
+            args.model,
+            args.revision,
+            cache_size=args.exl3_cache_size,
+            gpu_split=args.exl3_gpu_split,
+        )
+        direct = exl3.score
     else:
         from ._runtime.core import load_causal_model
         from ._runtime.direct import score as direct
 
-        model, tokenizer, metadata = load_causal_model(args.model, args.revision)
+        model, tokenizer, metadata = load_causal_model(
+            args.model, args.revision, args.device, args.dtype
+        )
 
     def score_rows(rows):
+        if (
+            args.backend == "llama-cpp"
+            and args.llama_cpp_prefix_reuse
+            and len(rows) > 1
+        ):
+            return shared(model, tokenizer, rows, metadata, args.max_tokens)[0]
         return [direct(model, tokenizer, row, metadata, args.max_tokens) for row in rows]
 
     return score_rows

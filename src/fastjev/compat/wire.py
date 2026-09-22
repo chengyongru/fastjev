@@ -176,6 +176,8 @@ def response_from_results(served_model: str, specs: list[QuestionSpec], results:
     answers = {}
     input_tokens = 0
     prompt_versions = set()
+    probability_statuses = set()
+    calibrations = set()
     for spec, result in zip(specs, results):
         probabilities = _probabilities(spec, result)
         values = list(probabilities.values())
@@ -201,15 +203,28 @@ def response_from_results(served_model: str, specs: list[QuestionSpec], results:
         input_tokens += int(result.get("input_tokens", 0))
         if result.get("prompt_version"):
             prompt_versions.add(result["prompt_version"])
+        if result.get("probability_status"):
+            probability_statuses.add(result["probability_status"])
+        calibration = result.get("calibration")
+        if calibration is not None:
+            calibrations.add(json.dumps(calibration, sort_keys=True, allow_nan=False))
+    probability_status = (
+        next(iter(probability_statuses))
+        if len(probability_statuses) == 1
+        else "conditional option scores; uncalibrated as decision confidence"
+    )
+    metadata = {
+        "probability_status": probability_status,
+        "confidence_method": CONFIDENCE_METHOD,
+        "prompt_versions": sorted(prompt_versions),
+    }
+    if len(calibrations) == 1:
+        metadata["calibration"] = json.loads(next(iter(calibrations)))
     return {
         "model": served_model,
         "answers": answers,
         "usage": {"input_tokens": input_tokens, "output_tokens": 0},
-        "fastjev": {
-            "probability_status": "conditional option scores; uncalibrated as decision confidence",
-            "confidence_method": CONFIDENCE_METHOD,
-            "prompt_versions": sorted(prompt_versions),
-        },
+        "fastjev": metadata,
     }
 
 

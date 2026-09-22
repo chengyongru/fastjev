@@ -17,8 +17,10 @@ from .backends.base import (
     ScoringBackend,
 )
 from .errors import BackendProtocolError, ValidationError
+from .calibration import TemperatureCalibration
 from .types import (
     Boolean,
+    Calibration,
     Choice,
     Decision,
     Provenance,
@@ -33,7 +35,12 @@ from .types import (
 class FastJev:
     """Keep one scoring backend resident and return typed semantic decisions."""
 
-    def __init__(self, backend: ScoringBackend):
+    def __init__(
+        self,
+        backend: ScoringBackend,
+        *,
+        calibration: TemperatureCalibration | None = None,
+    ):
         if not isinstance(backend, ScoringBackend):
             raise TypeError("backend must implement the ScoringBackend protocol")
         info = backend.info
@@ -60,6 +67,11 @@ class FastJev:
         self._backend = backend
         self._info = info
         self._capabilities = capabilities
+        if calibration is not None:
+            if not isinstance(calibration, TemperatureCalibration):
+                raise TypeError("calibration must be a TemperatureCalibration")
+            calibration.validate_backend(info)
+        self._calibration = calibration
         self._lock = Lock()
         self._closed = False
 
@@ -70,15 +82,20 @@ class FastJev:
         revision: str,
         *,
         max_input_tokens: int = 4096,
+        device: str = "auto",
+        dtype: str = "bfloat16",
+        calibration: TemperatureCalibration | None = None,
     ) -> "FastJev":
-        """Convenience constructor for the built-in Torch/CUDA backend."""
+        """Convenience constructor for the built-in Torch backend."""
         from .backends.torch import TorchBackend
 
         return cls(TorchBackend.from_pretrained(
             model,
             revision,
             max_input_tokens=max_input_tokens,
-        ))
+            device=device,
+            dtype=dtype,
+        ), calibration=calibration)
 
     @property
     def backend_info(self):
@@ -130,6 +147,23 @@ class FastJev:
         decisions = {}
         for request, result, values, numeric in zip(requests, raw_results, value_maps, score_values):
             probabilities = _validate_result(request, result)
+            calibration = self._calibration
+            calibration_metadata = None
+            probability_status = result.probability_status
+            if calibration is not None:
+                probabilities = list(calibration.apply(
+                    probabilities,
+                    prompt_version=result.prompt_version,
+                ))
+                calibration_metadata = Calibration(
+                    method="temperature_scaling",
+                    temperature=calibration.temperature,
+                    workload=calibration.workload,
+                )
+                probability_status = (
+                    "conditional option scores; temperature calibrated for workload "
+                    f"{calibration.workload!r}"
+                )
             selected_index = max(range(len(probabilities)), key=probabilities.__getitem__)
             mapped = {value: probability for value, probability in zip(values, probabilities)}
             selected = values[selected_index]
@@ -150,12 +184,13 @@ class FastJev:
                     model=self._info.model,
                     revision=self._info.revision,
                     prompt_version=result.prompt_version,
-                    probability_status=result.probability_status,
+                    probability_status=probability_status,
                 ),
                 uncertainty=Uncertainty(
                     normalized_entropy=max(0.0, min(1.0, normalized_entropy)),
-                    calibrated=False,
+                    calibrated=calibration is not None,
                 ),
+                calibration=calibration_metadata,
             )
         return decisions
 
