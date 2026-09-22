@@ -17,8 +17,8 @@ import time
 import evaluate
 from mlx_evidence import read_bytes
 from decision_vs_generation import compact_messages
-from semif_phase1 import mlx_backend as backend
-from semif_phase1.direct import encode_prompt
+from fastjev._runtime import mlx as backend
+from fastjev._runtime.direct import encode_prompt
 
 
 def read(path):
@@ -285,7 +285,7 @@ def main():
                     Path("benchmarks/mlx_benchmark.py"), Path("benchmarks/mlx_evidence.py"),
                     Path("benchmarks/evaluate.py"),
                     Path("benchmarks/decision_vs_generation.py"),
-                    *sorted(Path("src/semif_phase1").glob("*.py")),
+                    *sorted(Path("src/fastjev").rglob("*.py")),
                 ]},
                 "timing_scope": "Warm GPU execution including prompt preparation and CPU readout; excludes model loading and result writes. MLX operations are evaluated and synchronized.",
                 "fixture_sha256": {path.name: hashlib.sha256(path.read_bytes()).hexdigest()

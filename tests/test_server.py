@@ -2,7 +2,7 @@ from argparse import Namespace
 
 import pytest
 
-from semif_phase1.server import _parser, _validate_args
+from fastjev.server import _parser, _validate_args
 
 
 def args(**changes):

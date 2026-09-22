@@ -19,8 +19,8 @@ from fastjev import (
     SystemOneAdapter,
     ValidationError,
 )
-from semif_phase1.direct import score
-from semif_phase1.system_one import SystemOneService
+from fastjev.compat.wire import SystemOneService
+from fastjev._runtime.direct import score
 
 
 class FakeBackend:

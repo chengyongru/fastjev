@@ -177,6 +177,9 @@ Use `fastjev-score` for JSONL jobs. Install `fastjev[api,torch]` and run
 [HTTP guide](docs/SYSTEM_ONE_API.md) covers server setup, authentication, and
 compatibility boundaries.
 
+Integrations should import `fastjev` and use the `fastjev-*` commands. Only the
+documented modules are part of the supported public API.
+
 ## Documentation
 
 The [results report](docs/RESULTS.md) covers speed, quality, perturbations, and

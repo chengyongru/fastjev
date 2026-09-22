@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from semif_phase1.system_one import (
+from .wire import (
     SystemOneValidationError,
     request_rows,
     response_from_results,

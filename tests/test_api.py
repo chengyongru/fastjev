@@ -5,8 +5,8 @@ pytest.importorskip("httpx")
 
 from fastapi.testclient import TestClient
 
-from semif_phase1.api import create_app
-from semif_phase1.system_one import SystemOneService
+from fastjev.compat.wire import SystemOneService
+from fastjev.http import create_app
 
 
 def service():

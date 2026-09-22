@@ -205,6 +205,14 @@ Backend-specific option limits belong in `BackendCapabilities`. The domain types
 
 Built-in implementations are available as `TorchBackend`, `MLXBackend`, `LlamaCppBackend`, and `VLLMBackend`. `FastJev.from_pretrained` remains a Torch convenience; other runtimes use explicit dependency injection.
 
+## Package namespace
+
+Use `fastjev` and the documented public modules for integrations. Backend
+adapters live under `fastjev.backends`; low-level inference code lives under
+the private `fastjev._runtime` package and is not a supported integration
+surface. Use `fastjev-score` and `fastjev-serve` for command-line and HTTP
+entry points.
+
 ## Result semantics
 
 Every `Decision` exposes:

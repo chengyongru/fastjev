@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from semif_phase1 import mlx_backend
+from .._runtime import mlx
 
 from ..errors import InputTooLongError, ModelLoadError, ValidationError
 from .base import BackendCapabilities, BackendInfo, BackendRequest, BackendResult
@@ -35,12 +35,12 @@ class MLXBackend:
         revision: str,
         *,
         bits: int | None = None,
-        cache_limit_mib: int = mlx_backend.DEFAULT_CACHE_LIMIT_MIB,
+        cache_limit_mib: int = mlx.DEFAULT_CACHE_LIMIT_MIB,
         max_input_tokens: int = 4096,
     ) -> "MLXBackend":
         """Load one pinned native Qwen3.5 checkpoint through MLX-LM."""
         try:
-            loaded, tokenizer, metadata = mlx_backend.load_model(
+            loaded, tokenizer, metadata = mlx.load_model(
                 model,
                 revision,
                 bits,
@@ -73,7 +73,7 @@ class MLXBackend:
                 ],
             }
             try:
-                result = mlx_backend.score(
+                result = mlx.score(
                     self._model,
                     self._tokenizer,
                     row,

@@ -10,8 +10,8 @@ import json
 from pathlib import Path
 
 from mlx_benchmark import choice, compare, read, write
-from semif_phase1 import mlx_backend as backend
-from semif_phase1.direct import encode_prompt, score as torch_score
+from fastjev._runtime import mlx as backend
+from fastjev._runtime.direct import encode_prompt, score as torch_score
 
 
 def main():

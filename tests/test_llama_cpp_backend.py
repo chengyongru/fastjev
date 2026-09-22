@@ -7,7 +7,7 @@ import pytest
 from fastjev import BackendOption, BackendRequest
 from fastjev.backends import LlamaCppBackend
 from fastjev.errors import ModelLoadError, ValidationError
-from semif_phase1 import llama_cpp_backend
+from fastjev._runtime import llama_cpp as llama_cpp_backend
 
 
 METADATA = {"source": "fixture/model.gguf", "revision": "fixture-revision"}
@@ -39,7 +39,7 @@ def test_llama_cpp_backend_translates_the_public_protocol(monkeypatch):
         observed.update(model=model, tokenizer=tokenizer, row=row, metadata=metadata, max_tokens=max_tokens)
         return scorer_result(row)
 
-    monkeypatch.setattr("fastjev.backends.llama_cpp.llama_cpp_backend.score", fake_score)
+    monkeypatch.setattr("fastjev.backends.llama_cpp.llama_cpp.score", fake_score)
     backend = LlamaCppBackend("model-object", "tokenizer-object", METADATA, max_input_tokens=123)
     result = backend.score([REQUEST])[0]
 
@@ -64,7 +64,7 @@ def test_llama_cpp_backend_rejects_invalid_option_prompt(monkeypatch):
     def reject(*_args):
         raise ValueError("Answer boundary changes tokenization for slot 'A'")
 
-    monkeypatch.setattr("fastjev.backends.llama_cpp.llama_cpp_backend.score", reject)
+    monkeypatch.setattr("fastjev.backends.llama_cpp.llama_cpp.score", reject)
     backend = LlamaCppBackend("model-object", "tokenizer-object", METADATA)
     with pytest.raises(ValidationError, match="Answer boundary"):
         backend.score([REQUEST])
@@ -285,7 +285,7 @@ def test_public_backend_forwards_remote_filename(monkeypatch):
         return object(), None, {"source": source, "revision": revision}
 
     monkeypatch.setattr(
-        "fastjev.backends.llama_cpp.llama_cpp_backend.load_model",
+        "fastjev.backends.llama_cpp.llama_cpp.load_model",
         fake_load_model,
     )
     revision = "b" * 40
@@ -309,6 +309,6 @@ def test_llama_cpp_backend_reports_missing_optional_dependency(monkeypatch):
     def missing(*_args, **_kwargs):
         raise ImportError("No module named 'llama_cpp'")
 
-    monkeypatch.setattr("fastjev.backends.llama_cpp.llama_cpp_backend.load_model", missing)
+    monkeypatch.setattr("fastjev.backends.llama_cpp.llama_cpp.load_model", missing)
     with pytest.raises(ModelLoadError, match=r"fastjev\[llama-cpp\]"):
         LlamaCppBackend.from_pretrained("model.gguf", "local-revision")

@@ -6,11 +6,11 @@ import argparse
 import json
 from pathlib import Path
 
-from .core import load_causal_model, validate_row
-from .direct import score as direct_score
-from .reranker import score as reranker_score
-from .serial import SerialPrefixScorer
-from .shared import score_shared
+from ._runtime.core import load_causal_model, validate_row
+from ._runtime.direct import score as direct_score
+from ._runtime.reranker import score as reranker_score
+from ._runtime.serial import SerialPrefixScorer
+from ._runtime.shared import score_shared
 
 
 def main() -> None:
@@ -58,17 +58,17 @@ def main() -> None:
         validate_row(row)
     direct, serial, shared = direct_score, SerialPrefixScorer, score_shared
     if args.backend == "mlx":
-        from . import mlx_backend
+        from ._runtime import mlx
 
-        cache_limit_mib = (mlx_backend.DEFAULT_CACHE_LIMIT_MIB if args.mlx_cache_limit_mib is None
+        cache_limit_mib = (mlx.DEFAULT_CACHE_LIMIT_MIB if args.mlx_cache_limit_mib is None
                            else args.mlx_cache_limit_mib)
-        model, tokenizer, metadata = mlx_backend.load_model(
+        model, tokenizer, metadata = mlx.load_model(
             args.model, args.revision, args.mlx_bits, cache_limit_mib=cache_limit_mib)
-        direct, serial, shared = mlx_backend.score, mlx_backend.SerialPrefixScorer, mlx_backend.score_shared
+        direct, serial, shared = mlx.score, mlx.SerialPrefixScorer, mlx.score_shared
     elif args.backend == "llama-cpp":
-        from . import llama_cpp_backend
+        from ._runtime import llama_cpp
 
-        model, tokenizer, metadata = llama_cpp_backend.load_model(
+        model, tokenizer, metadata = llama_cpp.load_model(
             args.model,
             args.revision,
             filename=args.llama_cpp_filename,
@@ -76,7 +76,7 @@ def main() -> None:
             n_batch=args.llama_cpp_n_batch,
             n_gpu_layers=args.llama_cpp_n_gpu_layers,
         )
-        direct = llama_cpp_backend.score
+        direct = llama_cpp.score
     else:
         model, tokenizer, metadata = load_causal_model(args.model, args.revision)
     args.output.parent.mkdir(parents=True, exist_ok=True)

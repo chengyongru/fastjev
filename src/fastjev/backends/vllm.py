@@ -8,7 +8,7 @@ import re
 import time
 from typing import Any, Sequence
 
-from semif_phase1.direct import PROMPT_VERSION, encode_prompt
+from .._runtime.direct import PROMPT_VERSION, encode_prompt
 
 from ..errors import (
     BackendExecutionError,

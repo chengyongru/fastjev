@@ -6,7 +6,7 @@ import argparse
 from datetime import date
 import os
 
-from .system_one import SystemOneService
+from .compat.wire import SystemOneService
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -70,18 +70,18 @@ def _validate_args(parser: argparse.ArgumentParser, args) -> str | None:
 
 def _scorer(args):
     if args.backend == "mlx":
-        from . import mlx_backend
+        from ._runtime import mlx
 
-        cache_limit = (mlx_backend.DEFAULT_CACHE_LIMIT_MIB if args.mlx_cache_limit_mib is None
+        cache_limit = (mlx.DEFAULT_CACHE_LIMIT_MIB if args.mlx_cache_limit_mib is None
                        else args.mlx_cache_limit_mib)
-        model, tokenizer, metadata = mlx_backend.load_model(
+        model, tokenizer, metadata = mlx.load_model(
             args.model, args.revision, args.mlx_bits, cache_limit_mib=cache_limit
         )
-        direct = mlx_backend.score
+        direct = mlx.score
     elif args.backend == "llama-cpp":
-        from . import llama_cpp_backend
+        from ._runtime import llama_cpp
 
-        model, tokenizer, metadata = llama_cpp_backend.load_model(
+        model, tokenizer, metadata = llama_cpp.load_model(
             args.model,
             args.revision,
             filename=args.llama_cpp_filename,
@@ -89,10 +89,10 @@ def _scorer(args):
             n_batch=args.llama_cpp_n_batch,
             n_gpu_layers=args.llama_cpp_n_gpu_layers,
         )
-        direct = llama_cpp_backend.score
+        direct = llama_cpp.score
     else:
-        from .core import load_causal_model
-        from .direct import score as direct
+        from ._runtime.core import load_causal_model
+        from ._runtime.direct import score as direct
 
         model, tokenizer, metadata = load_causal_model(args.model, args.revision)
 
@@ -107,7 +107,7 @@ def main() -> None:
     args = parser.parse_args()
     api_key = _validate_args(parser, args)
     try:
-        from .api import create_app
+        from .http import create_app
         import uvicorn
     except ImportError as error:
         parser.error(f"HTTP dependencies are missing; install '.[api]' ({error})")

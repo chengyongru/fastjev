@@ -10,10 +10,10 @@ import statistics
 import time
 from pathlib import Path
 
-from semif_phase1.core import load_causal_model
-from semif_phase1.direct import score
-from semif_phase1.serial import SerialPrefixScorer
-from semif_phase1.shared import score_shared
+from fastjev._runtime.core import load_causal_model
+from fastjev._runtime.direct import score
+from fastjev._runtime.serial import SerialPrefixScorer
+from fastjev._runtime.shared import score_shared
 
 
 def main() -> None:

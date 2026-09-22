@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from semif_phase1.system_one import (
+from fastjev.compat.wire import (
     SystemOneService,
     SystemOneValidationError,
     distribution_confidence,
