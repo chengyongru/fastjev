@@ -55,8 +55,8 @@ BF16 参考使用状态前缀复用，而 llama.cpp 评估全新 prompt；因此
 82 MiB，加载后为 4,003 MiB，测量后为 4,085 MiB。runtime 报告支持 CUDA GPU
 offload，并请求将全部层放到 GPU。
 
-这项工作负载没有加入 Torch/vLLM 吞吐表：其 prompt 不同，而且当前 llama.cpp 后端
-会串行执行三个请求。已提交的
+README 将这项结果与历史 Torch/vLLM 测量并列，以展示实际 backend 取舍，但不计算
+直接速度倍率：其 prompt 不同，而且当前 llama.cpp 后端会串行执行三个请求。已提交的
 [SDK 记录](../results/raw/llama-cpp-qwen3.5-4b-q4-k-m-rtx5090-sdk.json)、
 [自编数据评估](../results/raw/llama-cpp-qwen3.5-4b-q4-k-m-authored144.json)和
 [扰动数据评估](../results/raw/llama-cpp-qwen3.5-4b-q4-k-m-perturbations108.json)

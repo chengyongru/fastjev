@@ -56,8 +56,9 @@ rose from 82 MiB before load to 4,003 MiB after load and 4,085 MiB after the
 measurements. The runtime reported CUDA GPU-offload support with all layers
 requested on the GPU.
 
-This workload is deliberately not added to the Torch/vLLM throughput table:
-its prompts differ, and the current llama.cpp backend executes the three
+The README places this result beside the historical Torch/vLLM measurements to
+show the practical backend trade-off, but does not calculate a direct speed
+ratio: its prompts differ, and the current llama.cpp backend executes the three
 requests serially. The committed
 [SDK record](../results/raw/llama-cpp-qwen3.5-4b-q4-k-m-rtx5090-sdk.json),
 [authored evaluation](../results/raw/llama-cpp-qwen3.5-4b-q4-k-m-authored144.json),

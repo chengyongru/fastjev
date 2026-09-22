@@ -105,16 +105,17 @@ pip install -e '.[torch]'
 
 ## Measured results
 
-### RTX 5090 with Torch and vLLM
+### RTX 5090 backend comparison
 
-An integration run on one host used the pinned Qwen3.5-4B checkpoint, identical
-inputs for three questions (125, 152, and 151 tokens), one warmup, and seven
-measured `decide_many` calls.
+All three measurements used Qwen3.5-4B through the public `decide_many` API on
+one RTX 5090 under WSL2, with one warmup and seven measured three-question
+calls.
 
-| Backend | Model load | Median batch of three decisions | Decisions/s |
-|---|---:|---:|---:|
-| Torch | **10.04 s** | 161.97 ms | 18.52 |
-| vLLM | 40.43 s | **82.73 ms** | **36.26** |
+| Backend | Model format | Request execution | Model load | Median three decisions | Decisions/s |
+|---|---|---|---:|---:|---:|
+| Torch | BF16 | Sequential | 10.04 s | 161.97 ms | 18.52 |
+| vLLM | BF16 | Batched | 40.43 s | **82.73 ms** | **36.26** |
+| llama.cpp | Q4_K_M | Sequential | **4.05 s** | 2.344 s | 1.28 |
 
 On this RTX 5090 / WSL workload, vLLM delivered 1.96× Torch throughput and
 48.9% lower median batch latency. Its additional 30.38 seconds of startup cost
@@ -126,21 +127,13 @@ integration measurement, including the exact environment and aggregate medians.
 The repository's reproducible benchmark bundle covers separate experiments with
 committed row data.
 
-### RTX 5090 with llama.cpp GGUF
-
-A Qwen3.5-4B Q4_K_M WSL2 run loaded in 4.05 seconds and completed three
-sequential shell-safeguard decisions in a median 2.344 seconds (1.28
-decisions/s). All three selected the expected answers with zero output tokens.
-
-| Frozen workload | Q4_K_M llama.cpp | Torch BF16 serial-prefix | Argmax agreement |
-|---|---:|---:|---:|
-| Authored decisions, 144 rows | 0.803 | 0.813 | 138/144 (95.8%) |
-| Perturbations, 108 rows | 0.775 | 0.780 | 105/108 (97.2%) |
-
-The llama.cpp backend evaluates `decide_many` sequentially, and the quality
-comparison does not isolate quantization from serving shape. See the
-[results report](docs/RESULTS.md#llamacpp-q4_k_m-on-an-rtx-5090) for exact
-conditions, row-level evidence, and claim boundaries.
+The llama.cpp row uses a later shell-safeguard fixture with 183, 185, and 165
+input tokens, while the Torch/vLLM rows share identical 125, 152, and 151-token
+prompts. It shows practical SDK cost, but the different prompts preclude an exact
+llama.cpp-to-BF16 speed ratio. All llama.cpp decisions selected the expected
+answers with zero output tokens. See the
+[results report](docs/RESULTS.md#llamacpp-q4_k_m-on-an-rtx-5090) for its quality
+results, exact conditions, and row-level evidence.
 
 ### Decision quality
 
