@@ -28,14 +28,14 @@ operation、target、字段值或完成结果。FastJev 选中 `TYPE_TEXT` 后�
 
 | 组件 | 精确来源 |
 |---|---|
-| FastJev runtime 分支 | `240230062901b92fba2ab79d5ecff751369ef7be`，再加本分支的 System One adapter 修改 |
+| FastJev | `7a0d200abc3e79655fa1112f7568bb669829d612` |
 | Jev Ultrafast | `1231850a0bf1a0c0341fe408ef1668dbbfdfac46` |
 | 决策模型 | `turboderp/Qwen3.8-27B-exl3`，revision `a35e75a73baee51da709329d19294245cbeeb5d8` |
 | 文本辅助模型 | `Qwen/Qwen3.5-4B`，revision `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` |
 
 Agent 完成五个浏览器动作，并在第六次 FastJev 请求返回 `DONE`。从第一次决策请求
-到验证完成共 11.776 秒，决策请求延迟中位数为 1.456 秒。第一次请求包含 EXL3
-冷路径；独立文本辅助模型用 1.148 秒返回 `Lisbon`。
+到验证完成共 10.375 秒，决策请求延迟中位数为 1.388 秒。第一次请求包含 EXL3
+冷路径；独立文本辅助模型用 0.602 秒返回 `Lisbon`。
 
 独立校验器确认最终 URL 为 `#casa-flora`，目的地、Design 分类、已启用的免费取消
 筛选和 Casa Flora 详情页全部正确。六次 FastJev 响应的输出 token 都是 0，录制
@@ -53,7 +53,7 @@ FastJev 返回的是给定选项条件下的概率，不能当作已校准的决
 - [经过验证的动作、决策和 usage 记录](assets/verified-run.json)
 - [产物校验和](assets/SHA256SUMS)
 
-13.876 秒的成片在前后分别加入 850 ms 引入和 1.25 秒结果停留；其中 11.776 秒
+12.475 秒的成片在前后分别加入 850 ms 引入和 1.25 秒结果停留；其中 10.375 秒
 的浏览器运行保持 1× 原速。
 
 ## 复现
@@ -61,7 +61,7 @@ FastJev 返回的是给定选项条件下的概率，不能当作已校准的决
 在隔离环境安装 FastJev runtime-capabilities 分支及 EXL3、API 依赖：
 
 ```bash
-git checkout 240230062901b92fba2ab79d5ecff751369ef7be
+git checkout 7a0d200abc3e79655fa1112f7568bb669829d612
 python -m venv .venv
 . .venv/bin/activate
 pip install -e '.[test,torch,api,exl3]'
@@ -110,7 +110,7 @@ uv run python /path/to/fastjev/demo/jev-ultrafast/record.py /new/run-directory \
   --model-source turboderp/Qwen3.8-27B-exl3 \
   --model-revision a35e75a73baee51da709329d19294245cbeeb5d8 \
   --text-model /path/to/Qwen3.5-4B \
-  --fastjev-revision 240230062901b92fba2ab79d5ecff751369ef7be \
+  --fastjev-revision 7a0d200abc3e79655fa1112f7568bb669829d612 \
   --jev-ultrafast-revision 1231850a0bf1a0c0341fe408ef1668dbbfdfac46
 ```
 

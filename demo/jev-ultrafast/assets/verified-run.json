@@ -1,5 +1,5 @@
 {
-  "elapsed_ms": 11776,
+  "elapsed_ms": 10375,
   "actions": 5,
   "decisions": 6,
   "goal": [
@@ -9,12 +9,17 @@
     "Enable Free cancellation.",
     "Open Casa Flora."
   ],
-  "orchestration": "One upstream Agent receives the five published goals as one newline-delimited task.",
   "model": "fastjev-qwen3.8-27b-exl3",
   "model_source": "turboderp/Qwen3.8-27B-exl3",
   "model_revision": "a35e75a73baee51da709329d19294245cbeeb5d8",
   "text_model": "/opt/qwen3.5-4b-modelscope-20260922",
   "provider_endpoint": "http://127.0.0.1:8000/v1/systemone",
+  "orchestration": "One upstream Agent receives the five published goals as one newline-delimited task.",
+  "source_revisions": {
+    "fastjev": "7a0d200abc3e79655fa1112f7568bb669829d612",
+    "jev_ultrafast": "1231850a0bf1a0c0341fe408ef1668dbbfdfac46",
+    "model": "a35e75a73baee51da709329d19294245cbeeb5d8"
+  },
   "verification": {
     "passed": true,
     "status": "done",
@@ -29,11 +34,6 @@
     "type_safe_api_calls": 0,
     "fastjev_output_tokens": 0
   },
-  "source_revisions": {
-    "fastjev": "ccf1ac9c281ddb54f1822bd96a453c8cb66b2eae",
-    "jev_ultrafast": "1231850a0bf1a0c0341fe408ef1668dbbfdfac46",
-    "model": "a35e75a73baee51da709329d19294245cbeeb5d8"
-  },
   "action_trace": [
     {
       "step": 1,
@@ -43,12 +43,12 @@
       "target": "4",
       "probability": 1.0,
       "confidence": 0.8499478103763134,
-      "latency_ms": 3556,
+      "latency_ms": 2951,
       "text": "Lisbon",
       "text_helper": "/opt/qwen3.5-4b-modelscope-20260922",
-      "text_latency_ms": 1148,
-      "executed_ms": 4746,
-      "elapsed_ms": 4774,
+      "text_latency_ms": 602,
+      "executed_ms": 3594,
+      "elapsed_ms": 3624,
       "url": "http://127.0.0.1:8766/fixture.html?scenario=travel",
       "usage": {
         "input_tokens": 3804,
@@ -63,12 +63,12 @@
       "target": "5",
       "probability": 0.6542813282119225,
       "confidence": 0.33733071773066925,
-      "latency_ms": 1492,
+      "latency_ms": 1460,
       "text": null,
       "text_helper": null,
       "text_latency_ms": 0,
-      "executed_ms": 6336,
-      "elapsed_ms": 6389,
+      "executed_ms": 5128,
+      "elapsed_ms": 5173,
       "url": "http://127.0.0.1:8766/fixture.html?scenario=travel",
       "usage": {
         "input_tokens": 3894,
@@ -83,12 +83,12 @@
       "target": "6:1",
       "probability": 0.9972903004204638,
       "confidence": 0.5012792673245011,
-      "latency_ms": 1463,
+      "latency_ms": 1437,
       "text": null,
       "text_helper": null,
       "text_latency_ms": 0,
-      "executed_ms": 7897,
-      "elapsed_ms": 7947,
+      "executed_ms": 6655,
+      "elapsed_ms": 6692,
       "url": "http://127.0.0.1:8766/fixture.html?scenario=travel",
       "usage": {
         "input_tokens": 3732,
@@ -103,12 +103,12 @@
       "target": "7",
       "probability": 0.8408072101526295,
       "confidence": 0.7131178297705522,
-      "latency_ms": 1448,
+      "latency_ms": 1303,
       "text": null,
       "text_helper": null,
       "text_latency_ms": 0,
-      "executed_ms": 9467,
-      "elapsed_ms": 9513,
+      "executed_ms": 8062,
+      "elapsed_ms": 8113,
       "url": "http://127.0.0.1:8766/fixture.html?scenario=travel",
       "usage": {
         "input_tokens": 3565,
@@ -123,12 +123,12 @@
       "target": "8",
       "probability": 0.9982038203103902,
       "confidence": 0.7645475932887236,
-      "latency_ms": 1364,
+      "latency_ms": 1338,
       "text": null,
       "text_helper": null,
       "text_latency_ms": 0,
-      "executed_ms": 10919,
-      "elapsed_ms": 10973,
+      "executed_ms": 9507,
+      "elapsed_ms": 9563,
       "url": "http://127.0.0.1:8766/fixture.html?scenario=travel#casa-flora",
       "usage": {
         "input_tokens": 3637,
@@ -154,8 +154,8 @@
       "target_probabilities": {
         "4": 1.0
       },
-      "latency_ms": 3556,
-      "elapsed_ms": 3559,
+      "latency_ms": 2951,
+      "elapsed_ms": 2953,
       "usage": {
         "input_tokens": 3804,
         "output_tokens": 0
@@ -186,8 +186,8 @@
         "9": 0.005840330714454721,
         "10": 0.004206632407625585
       },
-      "latency_ms": 1492,
-      "elapsed_ms": 6286,
+      "latency_ms": 1460,
+      "elapsed_ms": 5086,
       "usage": {
         "input_tokens": 3894,
         "output_tokens": 0
@@ -212,8 +212,8 @@
         "6:2": 0.0026314680951230332,
         "6:3": 0.00007823148441318562
       },
-      "latency_ms": 1463,
-      "elapsed_ms": 7857,
+      "latency_ms": 1437,
+      "elapsed_ms": 6626,
       "usage": {
         "input_tokens": 3732,
         "output_tokens": 0
@@ -242,8 +242,8 @@
         "7": 0.8408072101526295,
         "8": 0.1372580038963491
       },
-      "latency_ms": 1448,
-      "elapsed_ms": 9422,
+      "latency_ms": 1303,
+      "elapsed_ms": 8022,
       "usage": {
         "input_tokens": 3565,
         "output_tokens": 0
@@ -272,8 +272,8 @@
         "7": 0.00020955008148114255,
         "8": 0.9982038203103902
       },
-      "latency_ms": 1364,
-      "elapsed_ms": 10908,
+      "latency_ms": 1338,
+      "elapsed_ms": 9485,
       "usage": {
         "input_tokens": 3637,
         "output_tokens": 0
@@ -291,12 +291,25 @@
         "BLOCKED": 0.010208873807259718
       },
       "target_probabilities": {},
-      "latency_ms": 798,
-      "elapsed_ms": 11775,
+      "latency_ms": 794,
+      "elapsed_ms": 10359,
       "usage": {
         "input_tokens": 1833,
         "output_tokens": 0
       }
+    }
+  ],
+  "text_calls": [
+    {
+      "model": "/opt/qwen3.5-4b-modelscope-20260922",
+      "latency_ms": 602,
+      "usage": {
+        "completion_tokens": 11,
+        "prompt_tokens": 408,
+        "total_tokens": 419
+      },
+      "field": "Destination",
+      "value": "Lisbon"
     }
   ],
   "provider_calls": [
@@ -307,7 +320,7 @@
         "output_tokens": 0
       },
       "fastjev": {
-        "probability_status": "conditional option scores; uncalibrated as decision confidence",
+        "probability_status": "conditional option score over quantized weights; uncalibrated as decision confidence",
         "confidence_method": "one-minus-normalized-entropy",
         "prompt_versions": [
           "direct-options-v1"
@@ -321,7 +334,7 @@
         "output_tokens": 0
       },
       "fastjev": {
-        "probability_status": "conditional option scores; uncalibrated as decision confidence",
+        "probability_status": "conditional option score over quantized weights; uncalibrated as decision confidence",
         "confidence_method": "one-minus-normalized-entropy",
         "prompt_versions": [
           "direct-options-v1"
@@ -335,7 +348,7 @@
         "output_tokens": 0
       },
       "fastjev": {
-        "probability_status": "conditional option scores; uncalibrated as decision confidence",
+        "probability_status": "conditional option score over quantized weights; uncalibrated as decision confidence",
         "confidence_method": "one-minus-normalized-entropy",
         "prompt_versions": [
           "direct-options-v1"
@@ -349,7 +362,7 @@
         "output_tokens": 0
       },
       "fastjev": {
-        "probability_status": "conditional option scores; uncalibrated as decision confidence",
+        "probability_status": "conditional option score over quantized weights; uncalibrated as decision confidence",
         "confidence_method": "one-minus-normalized-entropy",
         "prompt_versions": [
           "direct-options-v1"
@@ -363,7 +376,7 @@
         "output_tokens": 0
       },
       "fastjev": {
-        "probability_status": "conditional option scores; uncalibrated as decision confidence",
+        "probability_status": "conditional option score over quantized weights; uncalibrated as decision confidence",
         "confidence_method": "one-minus-normalized-entropy",
         "prompt_versions": [
           "direct-options-v1"
@@ -377,25 +390,12 @@
         "output_tokens": 0
       },
       "fastjev": {
-        "probability_status": "conditional option scores; uncalibrated as decision confidence",
+        "probability_status": "conditional option score over quantized weights; uncalibrated as decision confidence",
         "confidence_method": "one-minus-normalized-entropy",
         "prompt_versions": [
           "direct-options-v1"
         ]
       }
-    }
-  ],
-  "text_calls": [
-    {
-      "model": "/opt/qwen3.5-4b-modelscope-20260922",
-      "latency_ms": 1148,
-      "usage": {
-        "completion_tokens": 11,
-        "prompt_tokens": 408,
-        "total_tokens": 419
-      },
-      "field": "Destination",
-      "value": "Lisbon"
     }
   ]
 }
