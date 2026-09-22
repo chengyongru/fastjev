@@ -49,8 +49,6 @@ vllm = [
 [project.scripts]
 fastjev-score = "fastjev.cli:main"
 fastjev-serve = "fastjev.server:main"
-semif-score = "fastjev.cli:main"
-semif-serve = "fastjev.server:main"
 
 [project.urls]
 Homepage = "https://github.com/chengyongru/fastjev"
