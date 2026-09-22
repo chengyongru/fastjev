@@ -1,7 +1,11 @@
 """Release version consistency checks."""
 
-import tomllib
 from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10
+    import tomli as tomllib
 
 from fastjev import __version__
 from fastjev.http import create_app

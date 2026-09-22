@@ -30,6 +30,7 @@ api = [
 ]
 test = [
   "pytest==8.4.2",
+  "tomli==2.4.1; python_version < '3.11'",
   "fastapi==0.136.3",
   "httpx==0.28.1",
   "uvicorn==0.53.0",
