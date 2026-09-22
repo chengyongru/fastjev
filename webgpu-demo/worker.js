@@ -31,6 +31,12 @@ let engine;
 let modelId;
 
 function send(type, data = {}) { self.postMessage({ type, ...data }); }
+function demoError(messageKey, message, params = {}) {
+  const error = new Error(message);
+  error.messageKey = messageKey;
+  error.params = params;
+  return error;
+}
 function optionBlock(options, labels = labelsFor(options.length)) {
   return options.map((option, index) => `${labels[index]}. ${option}`).join("\n");
 }
@@ -64,7 +70,12 @@ function optionLogprobs(response, labels) {
 }
 function validateOptionLogprobs(values, labels) {
   if (!values || values.length !== labels.length || values.some((value) => !Number.isFinite(value))) {
-    throw new Error(`The model did not return valid option logits for ${labels.join(", ")}.`);
+    const joinedLabels = labels.join(", ");
+    throw demoError(
+      "error.invalidLogits",
+      `The model did not return valid option logits for ${joinedLabels}.`,
+      { labels: joinedLabels },
+    );
   }
 }
 function validateGeneration(text, data) {
@@ -96,7 +107,9 @@ function validateGeneration(text, data) {
 
 async function load(requestedModelId, useLocal = false) {
   if (engine) return;
-  if (!Object.hasOwn(MODELS, requestedModelId)) throw new Error("Choose one of the listed models.");
+  if (!Object.hasOwn(MODELS, requestedModelId)) {
+    throw demoError("error.invalidModel", "Choose one of the listed models.");
+  }
   modelId = requestedModelId;
   const selected = MODELS[modelId];
   const modelUrl = useLocal ? new URL(`./assets/${selected.localFile}`, self.location.href).href : selected.url;
@@ -105,7 +118,7 @@ async function load(requestedModelId, useLocal = false) {
     { default: wasmUrl },
     { logger: LoggerWithoutDebug, suppressNativeLog: true, parallelDownloads: 4 },
   );
-  send("loading", { message: "Fetching the model or reading it from your browser cache…" });
+  send("loading", { messageKey: "status.fetchingModel" });
   const loadStart = performance.now();
   await engine.loadModelFromUrl(modelUrl, {
     n_ctx: 2048,
@@ -114,12 +127,11 @@ async function load(requestedModelId, useLocal = false) {
     cache_prompt: false,
     progressCallback: ({ loaded, total }) => send("progress", { event: {
       status: "progress", file: modelUrl, loaded, total,
-      text: total ? `${(loaded / total * 100).toFixed(0)}% of model downloaded or read from cache` : "loading model",
     } }),
   });
   const loadMs = performance.now() - loadStart;
   send("loaded", { loadMs });
-  send("loading", { message: "Model loaded. Compiling a real model pass…" });
+  send("loading", { messageKey: "status.compilingModel" });
   const warmupStart = performance.now();
   const warmup = await engine.createChatCompletion({
     messages: [{ role: "user", content: "Reply with the single word ready." }],
@@ -128,7 +140,9 @@ async function load(requestedModelId, useLocal = false) {
     cache_prompt: false,
     chat_template_kwargs: { enable_thinking: false },
   });
-  if (!warmup?.choices?.length) throw new Error("Model warmup returned no completion.");
+  if (!warmup?.choices?.length) {
+    throw demoError("error.warmup", "Model warmup returned no completion.");
+  }
   send("ready", { warmupMs: performance.now() - warmupStart, modelId, modelName: selected.name });
 }
 
@@ -199,9 +213,13 @@ async function generateAnswer(data) {
 }
 
 async function compare(data) {
-  if (!engine) throw new Error("Load the model before running a comparison.");
+  if (!engine) throw demoError("error.notLoaded", "Load the model before running a comparison.");
   if (!Array.isArray(data.options) || data.options.length < MIN_OPTIONS || data.options.length > MAX_OPTIONS) {
-    throw new Error(`This demo requires ${MIN_OPTIONS} to ${MAX_OPTIONS} options.`);
+    throw demoError(
+      "error.optionCount",
+      `This demo requires ${MIN_OPTIONS} to ${MAX_OPTIONS} options.`,
+      { min: MIN_OPTIONS, max: MAX_OPTIONS },
+    );
   }
   const direct = await directScore(data);
   send("direct", direct);
@@ -220,6 +238,10 @@ self.addEventListener("message", async ({ data }) => {
       modelId = undefined;
     }
     console.error(error);
-    send("error", { message: error?.message ?? String(error) });
+    send("error", {
+      message: error?.message ?? String(error),
+      messageKey: error?.messageKey,
+      params: error?.params,
+    });
   }
 });

@@ -4,7 +4,7 @@ from pathlib import Path
 WEBGPU = Path(__file__).resolve().parent
 
 def sources():
-    return {name: (WEBGPU / name).read_text() for name in ("index.html", "app.js", "worker.js", "README.md", "_headers")}
+    return {name: (WEBGPU / name).read_text() for name in ("index.html", "app.js", "i18n.js", "worker.js", "README.md", "_headers")}
 
 def test_static_runtime_and_pins():
     text = sources()
@@ -34,11 +34,11 @@ def test_three_pinned_model_tiers():
         assert revision in text["worker.js"]
         assert revision in text["README.md"]
     assert 'modelSelect.value = "minicpm5-2b"' in text["app.js"]
-    assert "Phone or small device detected" in text["app.js"]
-    assert "Switch to Qwen3 0.6B in the model box" in text["app.js"]
+    assert "Phone or small device detected" in text["i18n.js"]
+    assert "Switch to Qwen3 0.6B in the model box" in text["i18n.js"]
     assert "recommended for phones and small devices" in text["index.html"]
-    assert "Smaller model optimized for small devices. Accuracy may be worse." in text["app.js"]
-    assert "may not fit on some low-end devices" in text["app.js"]
+    assert "Smaller model optimized for small devices. Accuracy may be worse." in text["i18n.js"]
+    assert "may not fit on some low-end devices" in text["i18n.js"]
     assert 'id="model-notice"' in text["index.html"]
     assert 'id="quality-title"' in text["index.html"]
     assert 'owned + public benchmarks' in text["index.html"]
@@ -79,3 +79,38 @@ def test_identity_notice_and_ui_mode_switch():
     assert 'document.body.classList.toggle("plain-ui", plain)' in text["app.js"]
     assert "semif-ui-mode" in text["app.js"]
     assert "body.plain-ui" in (WEBGPU / "style.css").read_text()
+
+
+def test_english_and_simplified_chinese_interface():
+    text = sources()
+    assert 'from "./i18n.js"' in text["app.js"]
+    assert 'id="language-select"' in text["index.html"]
+    assert '<option value="en">English</option>' in text["index.html"]
+    assert '<option value="zh-CN">中文</option>' in text["index.html"]
+    assert 'const LANGUAGE_STORAGE_KEY = "fastjev-language"' in text["app.js"]
+    assert "navigator.languages" in text["app.js"]
+    assert "document.documentElement.lang = locale" in text["app.js"]
+    assert 'languageSelect.setAttribute("aria-label", t("language.label"))' in text["app.js"]
+    assert "在浏览器中本地完成决策" in text["i18n.js"]
+    assert "正在获取模型，或从浏览器缓存读取模型" in text["i18n.js"]
+    assert "状态、问题和每个选项都不能为空" in text["i18n.js"]
+
+    referenced = set(re.findall(r'data-i18n(?:-aria-label)?="([^"]+)"', text["index.html"]))
+    referenced.update(re.findall(r'\bt\("([^"]+)"', text["app.js"]))
+    referenced.update(re.findall(r'setSupport\("([^"]+)"', text["app.js"]))
+    referenced.update(re.findall(r'noticeKey: "([^"]+)"', text["app.js"]))
+    referenced.update(re.findall(r'(?:messageKey:\s*|demoError\()"([^"]+)"', text["worker.js"]))
+    for key in referenced:
+        assert text["i18n.js"].count(f'"{key}":') == 2, key
+
+    for key in (
+        "status.fetchingModel",
+        "status.compilingModel",
+        "error.invalidLogits",
+        "error.invalidModel",
+        "error.warmup",
+        "error.notLoaded",
+        "error.optionCount",
+    ):
+        assert f'"{key}"' in text["worker.js"]
+        assert text["i18n.js"].count(f'"{key}":') == 2
