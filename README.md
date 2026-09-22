@@ -92,6 +92,13 @@ Local model directories use a descriptive revision label for result provenance.
 
 Install `fastjev[llama-cpp]` to run GGUF files from disk or Hugging Face. The
 [Python SDK guide](docs/SDK.md) covers llama.cpp setup and provenance.
+For NVIDIA acceleration, select the upstream wheel index matching the installed
+CUDA runtime; the RTX 5090 measurement below used:
+
+```bash
+pip install 'fastjev[llama-cpp]' \
+  --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu130
+```
 
 ### Install the latest source
 
@@ -125,6 +132,37 @@ resident. Both backends made the same three selections.
 integration measurement, including the exact environment and aggregate medians.
 The repository's reproducible benchmark bundle covers separate experiments with
 committed row data.
+
+### RTX 5090 with llama.cpp GGUF
+
+A separate WSL2 run used FastJev 0.1.1 at commit `e9ee737`, the CUDA 13.0
+`llama-cpp-python` 0.3.35 wheel, and the pinned Qwen3.5-4B Q4_K_M artifact.
+The runtime reported GPU offload support and requested full offload with
+`n_gpu_layers=-1`.
+
+| SDK workload | Model load | Median batch of three decisions | Decisions/s | Observed GPU memory after load |
+|---|---:|---:|---:|---:|
+| Shell safeguard, 1 warmup + 7 runs | 4.05 s | 2.344 s | 1.28 | 4,003 MiB total, 82 MiB idle |
+
+All three questions selected the expected `block`, `critical`, and `true`
+answers and used zero output tokens. The llama.cpp backend currently evaluates
+`decide_many` requests in order, so this is a compatibility and local-deployment
+measurement, not a throughput win over batched vLLM.
+
+The same GGUF was also scored on the frozen owned quality sets:
+
+| Frozen workload | Q4_K_M llama.cpp | Torch BF16 serial-prefix | Argmax agreement |
+|---|---:|---:|---:|
+| Authored decisions, 144 rows | 0.803 | 0.813 | 138/144 (95.8%) |
+| Perturbations, 108 rows | 0.775 | 0.780 | 105/108 (97.2%) |
+
+Both quality columns use mean family balanced accuracy and 100% row coverage.
+They compare complete runtime paths; quantization and serving-shape effects are
+not isolated from each other.
+The [SDK timing record](results/raw/llama-cpp-qwen3.5-4b-q4-k-m-rtx5090-sdk.json),
+[row-level predictions](results/raw/predictions/), and
+[results report](docs/RESULTS.md#llamacpp-q4_k_m-on-an-rtx-5090) provide the
+exact artifact hash, environment, probabilities, and claim boundaries.
 
 ### Decision quality
 

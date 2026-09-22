@@ -40,6 +40,65 @@ CUDA_VISIBLE_DEVICES=0 fastjev-score --mode reranker \
 
 命令会拒绝已存在的输出路径，也拒绝静默截断输入。每条输出都嵌入精确 revision、库版本、prompt hash、token 数、计时和明确的概率状态警告。状态可以是非空字符串、JSON 对象或 JSON 数组。`serial` 缓存连续相同的状态；`shared` 要求所有输入行具有完全相同的状态，由下文的 37×21 runner 覆盖。
 
+## 复现 RTX 5090 GGUF 验证
+
+使用与 runtime 匹配的上游 CUDA wheel index 安装 FastJev。已提交测量使用 CUDA
+13.0：
+
+```bash
+pip install -e '.[llama-cpp]' \
+  --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu130
+```
+
+从 `bartowski/Qwen_Qwen3.5-4B-GGUF` revision
+`4168f45a16a1290d65a4ec0fa312ae917a4c15d6` 下载
+`Qwen_Qwen3.5-4B-Q4_K_M.gguf`。确认文件大小为 3,013,027,808 字节，SHA-256 为
+`13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983`，
+再把 `MODEL` 设为其本地路径。
+
+运行固定的公共 SDK safeguard 基准：
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python benchmarks/llama_cpp_sdk.py \
+  --model "$MODEL" \
+  --revision 4168f45a16a1290d65a4ec0fa312ae917a4c15d6 \
+  --fastjev-commit "$(git rev-parse HEAD)" \
+  --output llama-cpp-sdk-run.json
+```
+
+在新路径重新生成两个完整的项目自有质量输出及报告：
+
+```bash
+CUDA_VISIBLE_DEVICES=0 fastjev-score --backend llama-cpp --mode direct \
+  --model "$MODEL" \
+  --revision 4168f45a16a1290d65a4ec0fa312ae917a4c15d6 \
+  --llama-cpp-n-gpu-layers -1 --llama-cpp-n-batch 512 \
+  --input benchmarks/data/authored144.jsonl \
+  --output llama-cpp-authored144.jsonl
+
+CUDA_VISIBLE_DEVICES=0 fastjev-score --backend llama-cpp --mode direct \
+  --model "$MODEL" \
+  --revision 4168f45a16a1290d65a4ec0fa312ae917a4c15d6 \
+  --llama-cpp-n-gpu-layers -1 --llama-cpp-n-batch 512 \
+  --input benchmarks/data/perturbations108.jsonl \
+  --output llama-cpp-perturbations108.jsonl
+
+python benchmarks/evaluate.py \
+  --gold benchmarks/data/authored144.jsonl \
+  --predictions llama-cpp-authored144.jsonl \
+  --comparison results/raw/predictions/direct-authored144.jsonl \
+  --output llama-cpp-authored144-report.json
+
+python benchmarks/evaluate.py \
+  --gold benchmarks/data/perturbations108.jsonl \
+  --predictions llama-cpp-perturbations108.jsonl \
+  --comparison results/raw/predictions/direct-perturbations108.jsonl \
+  --output llama-cpp-perturbations108-report.json
+```
+
+scorer 与 benchmark runner 都拒绝已有输出路径。硬件计时允许变化；行数、模型身份、
+工件 hash 和指标定义是固定的。
+
 ## 第三方评估
 
 仓库不包含 TypeSafe 源记录。要复现该比较，请在源目录中提供本地快照。辅助脚本会下载其余公开评估输入并验证 hash：

@@ -48,6 +48,14 @@ jev.close()
 pip install 'fastjev[llama-cpp]'
 ```
 
+使用 NVIDIA GPU offload 时，请从与 CUDA runtime 匹配的上游 wheel index 安装。
+已提交的 RTX 5090 验证使用 CUDA 13.0：
+
+```bash
+pip install 'fastjev[llama-cpp]' \
+  --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu130
+```
+
 `LlamaCppBackend` 会直接读取 GGUF 内置的 chat template 和最后位置 logits，不启动也不依赖其他服务。缺少安全 chat template 或无法将答案槽位编码为精确单 token 的 GGUF 会被拒绝：
 
 ```python

@@ -73,6 +73,13 @@ print(result.provenance)
 远程模型使用不可变的 40 字符 Hugging Face revision。本地模型目录使用描述性 revision 标签记录结果来源。
 
 使用本地或 Hugging Face 托管的 GGUF 文件时安装 `fastjev[llama-cpp]`。[Python SDK 指南](docs/SDK.zh-CN.md)介绍 llama.cpp 的设置与来源记录。
+使用 NVIDIA 加速时，请选择与已安装 CUDA runtime 匹配的上游 wheel index；下文 RTX
+5090 实测使用：
+
+```bash
+pip install 'fastjev[llama-cpp]' \
+  --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu130
+```
 
 ### 安装最新源码
 
@@ -98,6 +105,34 @@ pip install -e '.[torch]'
 在这项 RTX 5090 / WSL 工作负载上，vLLM 吞吐量为 Torch 的 1.96 倍，batch 中位延迟降低 48.9%。额外的 30.38 秒启动成本需要常驻处理约 383 个三项决策 batch 才能抵消。两个后端的三项选择完全一致。
 
 [PR #7](https://github.com/chengyongru/fastjev/pull/7) 记录了这项历史集成测量，包括精确环境和汇总中位数。仓库内的可复现 benchmark bundle 覆盖另外提交了逐行数据的实验。
+
+### RTX 5090 上的 llama.cpp GGUF
+
+另一项 WSL2 实测使用 commit `e9ee737` 的 FastJev 0.1.1、CUDA 13.0 版
+`llama-cpp-python` 0.3.35 wheel，以及固定的 Qwen3.5-4B Q4_K_M 工件。runtime
+报告支持 GPU offload，并通过 `n_gpu_layers=-1` 请求全部层 offload。
+
+| SDK 工作负载 | 模型加载 | 三项决策 batch 中位耗时 | 决策/秒 | 加载后观测到的 GPU 显存 |
+|---|---:|---:|---:|---:|
+| Shell safeguard，1 次 warmup + 7 次测量 | 4.05 秒 | 2.344 秒 | 1.28 | 总计 4,003 MiB，空闲时 82 MiB |
+
+三个问题都选择了预期的 `block`、`critical` 和 `true`，输出 token 数均为 0。当前
+llama.cpp 后端按顺序计算 `decide_many` 请求，因此这是一项兼容性和本地部署测量，
+不代表其吞吐量优于支持批量执行的 vLLM。
+
+同一个 GGUF 还在冻结的项目自有质量集上完成了评分：
+
+| 冻结工作负载 | Q4_K_M llama.cpp | Torch BF16 串行前缀 | Argmax 一致率 |
+|---|---:|---:|---:|
+| 自编决策，144 行 | 0.803 | 0.813 | 138/144（95.8%） |
+| 扰动数据，108 行 | 0.775 | 0.780 | 105/108（97.2%） |
+
+两列质量数据都使用各族平均平衡准确率，逐行覆盖率均为 100%。
+这里比较的是完整 runtime 路径，没有把量化影响与 serving shape 影响相互隔离。
+[SDK 计时记录](results/raw/llama-cpp-qwen3.5-4b-q4-k-m-rtx5090-sdk.json)、
+[逐行预测](results/raw/predictions/)和
+[结果文档](docs/RESULTS.zh-CN.md#rtx-5090-上的-llamacpp-q4_k_m)记录了精确工件 hash、
+环境、概率和声明边界。
 
 ### 决策质量
 
