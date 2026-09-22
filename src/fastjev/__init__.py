@@ -38,8 +38,8 @@ from .types import (
 )
 
 # Retained low-level imports for compatibility with the first fastjev release.
-from .runtime.core import load_causal_model
-from .runtime.direct import score as score_direct
+from ._runtime.core import load_causal_model
+from ._runtime.direct import score as score_direct
 from .compat.wire import (
     QuestionSpec,
     SystemOneService,

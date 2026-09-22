@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from ..runtime import mlx
+from .._runtime import mlx
 
 from ..errors import InputTooLongError, ModelLoadError, ValidationError
 from .base import BackendCapabilities, BackendInfo, BackendRequest, BackendResult

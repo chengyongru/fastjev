@@ -207,10 +207,9 @@ backend 特定的选项限制写入 `BackendCapabilities`。领域类型本身�
 
 ## 包命名空间
 
-持续维护的 SDK、runtime、CLI 和 HTTP 实现均位于 `fastjev` 下。继承的
-`semif_phase1` 模块会转发到这些实现，使旧脚本继续工作；它们不会维护另一份 runtime
-实现。新代码应导入 `fastjev`、`fastjev.runtime` 或文档列出的公共模块。
-`semif-score` 与 `semif-serve` 别名同样转发到持续维护的 `fastjev` 入口。
+集成时使用 `fastjev` 及文档列出的公共模块。backend 适配器位于
+`fastjev.backends`；底层推理代码位于私有的 `fastjev._runtime` 包中，不属于受支持的
+集成接口。命令行和 HTTP 入口分别使用 `fastjev-score` 与 `fastjev-serve`。
 
 ## 结果语义
 

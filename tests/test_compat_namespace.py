@@ -1,5 +1,6 @@
 """Compatibility and dependency-direction checks for the inherited namespace."""
 
+import importlib.util
 from pathlib import Path
 import subprocess
 import sys
@@ -9,8 +10,8 @@ import fastjev
 from fastjev.cli import main as cli_main
 from fastjev.compat.wire import SystemOneService
 from fastjev.http import create_app
-from fastjev.runtime.core import load_causal_model
-from fastjev.runtime.reranker import _answer_ids
+from fastjev._runtime.core import load_causal_model
+from fastjev._runtime.reranker import _answer_ids
 from fastjev.server import main as server_main
 from semif_phase1 import __version__ as legacy_version
 from semif_phase1.api import create_app as legacy_create_app
@@ -34,6 +35,11 @@ def test_inherited_namespace_forwards_to_fastjev():
     assert LegacySystemOneService is SystemOneService
 
 
+def test_low_level_runtime_uses_a_private_namespace():
+    assert importlib.util.find_spec("fastjev.runtime") is None
+    assert importlib.util.find_spec("fastjev._runtime") is not None
+
+
 def test_fastjev_imports_without_the_inherited_namespace():
     script = textwrap.dedent("""
         import importlib.abc
@@ -50,7 +56,7 @@ def test_fastjev_imports_without_the_inherited_namespace():
         import fastjev.cli
         import fastjev.http
         import fastjev.server
-        import fastjev.runtime.llama_cpp
+        import fastjev._runtime.llama_cpp
         assert not any(name == "semif_phase1" or name.startswith("semif_phase1.") for name in sys.modules)
     """)
     completed = subprocess.run(

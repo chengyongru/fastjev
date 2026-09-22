@@ -1,7 +1,7 @@
-"""Compatibility import for :mod:`fastjev.runtime.serial`."""
+"""Compatibility import for :mod:`fastjev._runtime.serial`."""
 
-from fastjev.runtime.serial import *  # noqa: F403
-from fastjev.runtime import serial as _implementation
+from fastjev._runtime.serial import *  # noqa: F403
+from fastjev._runtime import serial as _implementation
 
 
 def __getattr__(name):

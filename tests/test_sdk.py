@@ -20,7 +20,7 @@ from fastjev import (
     ValidationError,
 )
 from fastjev.compat.wire import SystemOneService
-from fastjev.runtime.direct import score
+from fastjev._runtime.direct import score
 
 
 class FakeBackend:

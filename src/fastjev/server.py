@@ -70,7 +70,7 @@ def _validate_args(parser: argparse.ArgumentParser, args) -> str | None:
 
 def _scorer(args):
     if args.backend == "mlx":
-        from .runtime import mlx
+        from ._runtime import mlx
 
         cache_limit = (mlx.DEFAULT_CACHE_LIMIT_MIB if args.mlx_cache_limit_mib is None
                        else args.mlx_cache_limit_mib)
@@ -79,7 +79,7 @@ def _scorer(args):
         )
         direct = mlx.score
     elif args.backend == "llama-cpp":
-        from .runtime import llama_cpp
+        from ._runtime import llama_cpp
 
         model, tokenizer, metadata = llama_cpp.load_model(
             args.model,
@@ -91,8 +91,8 @@ def _scorer(args):
         )
         direct = llama_cpp.score
     else:
-        from .runtime.core import load_causal_model
-        from .runtime.direct import score as direct
+        from ._runtime.core import load_causal_model
+        from ._runtime.direct import score as direct
 
         model, tokenizer, metadata = load_causal_model(args.model, args.revision)
 

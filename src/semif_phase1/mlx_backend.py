@@ -1,7 +1,7 @@
-"""Compatibility import for :mod:`fastjev.runtime.mlx`."""
+"""Compatibility import for :mod:`fastjev._runtime.mlx`."""
 
-from fastjev.runtime.mlx import *  # noqa: F403
-from fastjev.runtime import mlx as _implementation
+from fastjev._runtime.mlx import *  # noqa: F403
+from fastjev._runtime import mlx as _implementation
 
 
 def __getattr__(name):

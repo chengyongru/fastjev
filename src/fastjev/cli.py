@@ -6,11 +6,11 @@ import argparse
 import json
 from pathlib import Path
 
-from .runtime.core import load_causal_model, validate_row
-from .runtime.direct import score as direct_score
-from .runtime.reranker import score as reranker_score
-from .runtime.serial import SerialPrefixScorer
-from .runtime.shared import score_shared
+from ._runtime.core import load_causal_model, validate_row
+from ._runtime.direct import score as direct_score
+from ._runtime.reranker import score as reranker_score
+from ._runtime.serial import SerialPrefixScorer
+from ._runtime.shared import score_shared
 
 
 def main() -> None:
@@ -58,7 +58,7 @@ def main() -> None:
         validate_row(row)
     direct, serial, shared = direct_score, SerialPrefixScorer, score_shared
     if args.backend == "mlx":
-        from .runtime import mlx
+        from ._runtime import mlx
 
         cache_limit_mib = (mlx.DEFAULT_CACHE_LIMIT_MIB if args.mlx_cache_limit_mib is None
                            else args.mlx_cache_limit_mib)
@@ -66,7 +66,7 @@ def main() -> None:
             args.model, args.revision, args.mlx_bits, cache_limit_mib=cache_limit_mib)
         direct, serial, shared = mlx.score, mlx.SerialPrefixScorer, mlx.score_shared
     elif args.backend == "llama-cpp":
-        from .runtime import llama_cpp
+        from ._runtime import llama_cpp
 
         model, tokenizer, metadata = llama_cpp.load_model(
             args.model,

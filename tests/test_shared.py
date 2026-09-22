@@ -1,6 +1,6 @@
 import pytest
 
-from fastjev.runtime.shared import _suffix_layout
+from fastjev._runtime.shared import _suffix_layout
 
 
 def test_suffix_padding_follows_real_tokens():

@@ -5,7 +5,7 @@ import pytest
 from fastjev import BackendOption, BackendRequest
 from fastjev.backends import MLXBackend, TorchBackend
 from fastjev.errors import InputTooLongError, ModelLoadError
-from fastjev.runtime import mlx as mlx_backend
+from fastjev._runtime import mlx as mlx_backend
 
 
 METADATA = {"source": "fixture/model", "revision": "fixture-revision"}

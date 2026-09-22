@@ -17,8 +17,8 @@ import time
 import evaluate
 from mlx_evidence import read_bytes
 from decision_vs_generation import compact_messages
-from fastjev.runtime import mlx as backend
-from fastjev.runtime.direct import encode_prompt
+from fastjev._runtime import mlx as backend
+from fastjev._runtime.direct import encode_prompt
 
 
 def read(path):

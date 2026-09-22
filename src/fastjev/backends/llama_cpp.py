@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from ..runtime import llama_cpp
+from .._runtime import llama_cpp
 
 from ..errors import BackendExecutionError, InputTooLongError, ModelLoadError, ValidationError
 from .base import BackendCapabilities, BackendInfo, BackendRequest, BackendResult

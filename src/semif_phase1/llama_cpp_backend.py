@@ -1,7 +1,7 @@
-"""Compatibility import for :mod:`fastjev.runtime.llama_cpp`."""
+"""Compatibility import for :mod:`fastjev._runtime.llama_cpp`."""
 
-from fastjev.runtime.llama_cpp import *  # noqa: F403
-from fastjev.runtime import llama_cpp as _implementation
+from fastjev._runtime.llama_cpp import *  # noqa: F403
+from fastjev._runtime import llama_cpp as _implementation
 
 
 def __getattr__(name):

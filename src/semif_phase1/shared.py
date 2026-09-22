@@ -1,7 +1,7 @@
-"""Compatibility import for :mod:`fastjev.runtime.shared`."""
+"""Compatibility import for :mod:`fastjev._runtime.shared`."""
 
-from fastjev.runtime.shared import *  # noqa: F403
-from fastjev.runtime import shared as _implementation
+from fastjev._runtime.shared import *  # noqa: F403
+from fastjev._runtime import shared as _implementation
 
 
 def __getattr__(name):

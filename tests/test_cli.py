@@ -27,7 +27,7 @@ def test_invalid_backend_combinations_fail_before_loading(tmp_path, monkeypatch,
 def test_cli_passes_cache_limit_to_loader(tmp_path, monkeypatch, limit):
     import json
     from types import SimpleNamespace
-    from fastjev import runtime
+    from fastjev import _runtime
 
     fake_backend = SimpleNamespace(
         DEFAULT_CACHE_LIMIT_MIB=256,
@@ -36,7 +36,7 @@ def test_cli_passes_cache_limit_to_loader(tmp_path, monkeypatch, limit):
         score=lambda model, tokenizer, row, metadata, max_tokens: metadata,
         SerialPrefixScorer=None, score_shared=None,
     )
-    monkeypatch.setattr(runtime, 'mlx', fake_backend)
+    monkeypatch.setattr(_runtime, 'mlx', fake_backend)
     source, output = tmp_path / 'input.jsonl', tmp_path / 'output.jsonl'
     source.write_text(json.dumps({'id': 'test', 'state': 'Evidence', 'question': 'Supported?',
                                  'options': [{'id': 'yes', 'description': 'Yes'}, {'id': 'no', 'description': 'No'}]}) + '\n')
@@ -52,7 +52,7 @@ def test_cli_passes_cache_limit_to_loader(tmp_path, monkeypatch, limit):
 def test_cli_passes_llama_cpp_options_to_loader(tmp_path, monkeypatch):
     import json
     from types import SimpleNamespace
-    from fastjev import runtime
+    from fastjev import _runtime
 
     observed = {}
 
@@ -77,7 +77,7 @@ def test_cli_passes_llama_cpp_options_to_loader(tmp_path, monkeypatch):
         }
 
     fake_backend = SimpleNamespace(load_model=load_model, score=score)
-    monkeypatch.setattr(runtime, "llama_cpp", fake_backend)
+    monkeypatch.setattr(_runtime, "llama_cpp", fake_backend)
     source, output = tmp_path / "input.jsonl", tmp_path / "output.jsonl"
     source.write_text(json.dumps({
         "id": "test",

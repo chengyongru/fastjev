@@ -207,12 +207,11 @@ Built-in implementations are available as `TorchBackend`, `MLXBackend`, `LlamaCp
 
 ## Package namespace
 
-Maintained SDK, runtime, CLI, and HTTP implementations live under `fastjev`.
-The inherited `semif_phase1` modules forward to those implementations so older
-scripts keep working; they do not own a second copy of the runtime. New code
-should import `fastjev`, `fastjev.runtime`, or the documented public modules.
-The `semif-score` and `semif-serve` aliases likewise forward to the maintained
-`fastjev` entry points.
+Use `fastjev` and the documented public modules for integrations. Backend
+adapters live under `fastjev.backends`; low-level inference code lives under
+the private `fastjev._runtime` package and is not a supported integration
+surface. Use `fastjev-score` and `fastjev-serve` for command-line and HTTP
+entry points.
 
 ## Result semantics
 

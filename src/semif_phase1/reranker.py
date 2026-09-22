@@ -1,7 +1,7 @@
-"""Compatibility import for :mod:`fastjev.runtime.reranker`."""
+"""Compatibility import for :mod:`fastjev._runtime.reranker`."""
 
-from fastjev.runtime.reranker import *  # noqa: F403
-from fastjev.runtime import reranker as _implementation
+from fastjev._runtime.reranker import *  # noqa: F403
+from fastjev._runtime import reranker as _implementation
 
 
 def __getattr__(name):

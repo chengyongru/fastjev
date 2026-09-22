@@ -9,8 +9,8 @@ import statistics
 import time
 from pathlib import Path
 
-from fastjev.runtime.core import load_causal_model
-from fastjev.runtime.shared import score_shared
+from fastjev._runtime.core import load_causal_model
+from fastjev._runtime.shared import score_shared
 
 
 class TimelineStreamer:

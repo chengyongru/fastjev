@@ -7,7 +7,7 @@ import pytest
 from fastjev import BackendOption, BackendRequest
 from fastjev.backends import LlamaCppBackend
 from fastjev.errors import ModelLoadError, ValidationError
-from fastjev.runtime import llama_cpp as llama_cpp_backend
+from fastjev._runtime import llama_cpp as llama_cpp_backend
 
 
 METADATA = {"source": "fixture/model.gguf", "revision": "fixture-revision"}

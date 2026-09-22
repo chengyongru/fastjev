@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from ..runtime.core import load_causal_model
-from ..runtime.direct import score as score_direct
+from .._runtime.core import load_causal_model
+from .._runtime.direct import score as score_direct
 
 from ..errors import InputTooLongError, ModelLoadError, ValidationError
 from .base import (
