@@ -1,0 +1,401 @@
+{
+  "elapsed_ms": 11776,
+  "actions": 5,
+  "decisions": 6,
+  "goal": [
+    "Enter \"Lisbon\" into the Destination field.",
+    "Click Find stays to search for Lisbon.",
+    "Set Stay category to Design.",
+    "Enable Free cancellation.",
+    "Open Casa Flora."
+  ],
+  "orchestration": "One upstream Agent receives the five published goals as one newline-delimited task.",
+  "model": "fastjev-qwen3.8-27b-exl3",
+  "model_source": "turboderp/Qwen3.8-27B-exl3",
+  "model_revision": "a35e75a73baee51da709329d19294245cbeeb5d8",
+  "text_model": "/opt/qwen3.5-4b-modelscope-20260922",
+  "provider_endpoint": "http://127.0.0.1:8000/v1/systemone",
+  "verification": {
+    "passed": true,
+    "status": "done",
+    "checks": {
+      "property": true,
+      "category": true,
+      "free_cancellation": true,
+      "destination": true
+    },
+    "final_url": "http://127.0.0.1:8766/fixture.html?scenario=travel#casa-flora",
+    "fastjev_responses": 6,
+    "type_safe_api_calls": 0,
+    "fastjev_output_tokens": 0
+  },
+  "source_revisions": {
+    "fastjev": "ccf1ac9c281ddb54f1822bd96a453c8cb66b2eae",
+    "jev_ultrafast": "1231850a0bf1a0c0341fe408ef1668dbbfdfac46",
+    "model": "a35e75a73baee51da709329d19294245cbeeb5d8"
+  },
+  "action_trace": [
+    {
+      "step": 1,
+      "action": "Destination",
+      "kind": "fill",
+      "operation": "TYPE_TEXT",
+      "target": "4",
+      "probability": 1.0,
+      "confidence": 0.8499478103763134,
+      "latency_ms": 3556,
+      "text": "Lisbon",
+      "text_helper": "/opt/qwen3.5-4b-modelscope-20260922",
+      "text_latency_ms": 1148,
+      "executed_ms": 4746,
+      "elapsed_ms": 4774,
+      "url": "http://127.0.0.1:8766/fixture.html?scenario=travel",
+      "usage": {
+        "input_tokens": 3804,
+        "output_tokens": 0
+      }
+    },
+    {
+      "step": 2,
+      "action": "Find stays",
+      "kind": "click",
+      "operation": "CLICK",
+      "target": "5",
+      "probability": 0.6542813282119225,
+      "confidence": 0.33733071773066925,
+      "latency_ms": 1492,
+      "text": null,
+      "text_helper": null,
+      "text_latency_ms": 0,
+      "executed_ms": 6336,
+      "elapsed_ms": 6389,
+      "url": "http://127.0.0.1:8766/fixture.html?scenario=travel",
+      "usage": {
+        "input_tokens": 3894,
+        "output_tokens": 0
+      }
+    },
+    {
+      "step": 3,
+      "action": "Stay category → Design",
+      "kind": "select",
+      "operation": "SELECT",
+      "target": "6:1",
+      "probability": 0.9972903004204638,
+      "confidence": 0.5012792673245011,
+      "latency_ms": 1463,
+      "text": null,
+      "text_helper": null,
+      "text_latency_ms": 0,
+      "executed_ms": 7897,
+      "elapsed_ms": 7947,
+      "url": "http://127.0.0.1:8766/fixture.html?scenario=travel",
+      "usage": {
+        "input_tokens": 3732,
+        "output_tokens": 0
+      }
+    },
+    {
+      "step": 4,
+      "action": "Free cancellation",
+      "kind": "click",
+      "operation": "CLICK",
+      "target": "7",
+      "probability": 0.8408072101526295,
+      "confidence": 0.7131178297705522,
+      "latency_ms": 1448,
+      "text": null,
+      "text_helper": null,
+      "text_latency_ms": 0,
+      "executed_ms": 9467,
+      "elapsed_ms": 9513,
+      "url": "http://127.0.0.1:8766/fixture.html?scenario=travel",
+      "usage": {
+        "input_tokens": 3565,
+        "output_tokens": 0
+      }
+    },
+    {
+      "step": 5,
+      "action": "View Casa Flora",
+      "kind": "click",
+      "operation": "CLICK",
+      "target": "8",
+      "probability": 0.9982038203103902,
+      "confidence": 0.7645475932887236,
+      "latency_ms": 1364,
+      "text": null,
+      "text_helper": null,
+      "text_latency_ms": 0,
+      "executed_ms": 10919,
+      "elapsed_ms": 10973,
+      "url": "http://127.0.0.1:8766/fixture.html?scenario=travel#casa-flora",
+      "usage": {
+        "input_tokens": 3637,
+        "output_tokens": 0
+      }
+    }
+  ],
+  "decision_trace": [
+    {
+      "choice": "e4",
+      "operation": "TYPE_TEXT",
+      "target": "4",
+      "confidence": 0.8499478103763134,
+      "operation_probabilities": {
+        "CLICK": 0.059499628045150264,
+        "TYPE_TEXT": 0.9307307787564043,
+        "SELECT": 0.0012543218414935978,
+        "SCROLL_DOWN": 0.0006507335988972796,
+        "WAIT": 0.00032213649079012793,
+        "DONE": 0.005199019557574954,
+        "BLOCKED": 0.002343381709689355
+      },
+      "target_probabilities": {
+        "4": 1.0
+      },
+      "latency_ms": 3556,
+      "elapsed_ms": 3559,
+      "usage": {
+        "input_tokens": 3804,
+        "output_tokens": 0
+      }
+    },
+    {
+      "choice": "e6",
+      "operation": "CLICK",
+      "target": "5",
+      "confidence": 0.33733071773066925,
+      "operation_probabilities": {
+        "CLICK": 0.5693133412479031,
+        "TYPE_TEXT": 0.11748444832688006,
+        "SELECT": 0.19674942605397477,
+        "SCROLL_DOWN": 0.012190792700838084,
+        "WAIT": 0.019787609721053392,
+        "DONE": 0.03472833659104763,
+        "BLOCKED": 0.049746045358302834
+      },
+      "target_probabilities": {
+        "1": 0.031083042847525152,
+        "2": 0.028747115288682085,
+        "3": 0.0038904989898293487,
+        "4": 0.0374933065267333,
+        "5": 0.6542813282119225,
+        "7": 0.1706794821754874,
+        "8": 0.06377826283773998,
+        "9": 0.005840330714454721,
+        "10": 0.004206632407625585
+      },
+      "latency_ms": 1492,
+      "elapsed_ms": 6286,
+      "usage": {
+        "input_tokens": 3894,
+        "output_tokens": 0
+      }
+    },
+    {
+      "choice": "e7",
+      "operation": "SELECT",
+      "target": "6:1",
+      "confidence": 0.5012792673245011,
+      "operation_probabilities": {
+        "CLICK": 0.2091998801678968,
+        "TYPE_TEXT": 0.03692597228357088,
+        "SELECT": 0.6859399993384309,
+        "SCROLL_DOWN": 0.008500841506658786,
+        "WAIT": 0.004843633486253918,
+        "DONE": 0.02921084835775796,
+        "BLOCKED": 0.02537882485943086
+      },
+      "target_probabilities": {
+        "6:1": 0.9972903004204638,
+        "6:2": 0.0026314680951230332,
+        "6:3": 0.00007823148441318562
+      },
+      "latency_ms": 1463,
+      "elapsed_ms": 7857,
+      "usage": {
+        "input_tokens": 3732,
+        "output_tokens": 0
+      }
+    },
+    {
+      "choice": "e10",
+      "operation": "CLICK",
+      "target": "7",
+      "confidence": 0.7131178297705522,
+      "operation_probabilities": {
+        "CLICK": 0.8818537679012645,
+        "TYPE_TEXT": 0.018302291054218038,
+        "SELECT": 0.017464168126443094,
+        "SCROLL_DOWN": 0.009202969891275892,
+        "WAIT": 0.007167280157908225,
+        "DONE": 0.030175376563633945,
+        "BLOCKED": 0.03583414630525636
+      },
+      "target_probabilities": {
+        "1": 0.008372791947364707,
+        "2": 0.0042101041869157824,
+        "3": 0.0006766253171606038,
+        "4": 0.002051840909611792,
+        "5": 0.006623423589968528,
+        "7": 0.8408072101526295,
+        "8": 0.1372580038963491
+      },
+      "latency_ms": 1448,
+      "elapsed_ms": 9422,
+      "usage": {
+        "input_tokens": 3565,
+        "output_tokens": 0
+      }
+    },
+    {
+      "choice": "e11",
+      "operation": "CLICK",
+      "target": "8",
+      "confidence": 0.7645475932887236,
+      "operation_probabilities": {
+        "CLICK": 0.8856342782688688,
+        "TYPE_TEXT": 0.004231489619224979,
+        "SELECT": 0.00193731711767146,
+        "SCROLL_DOWN": 0.0017096763556691797,
+        "WAIT": 0.0011388899806998479,
+        "DONE": 0.07860451078503251,
+        "BLOCKED": 0.026743837872833347
+      },
+      "target_probabilities": {
+        "1": 0.00101545062981331,
+        "2": 0.00025276564705118543,
+        "3": 0.00009226365219176619,
+        "4": 0.00011572454592982152,
+        "5": 0.0001104251331424932,
+        "7": 0.00020955008148114255,
+        "8": 0.9982038203103902
+      },
+      "latency_ms": 1364,
+      "elapsed_ms": 10908,
+      "usage": {
+        "input_tokens": 3637,
+        "output_tokens": 0
+      }
+    },
+    {
+      "choice": "DONE",
+      "operation": "DONE",
+      "target": null,
+      "confidence": 0.8662323285713032,
+      "operation_probabilities": {
+        "CLICK": 0.025267205337520728,
+        "WAIT": 0.00144792619618625,
+        "DONE": 0.9630759946590334,
+        "BLOCKED": 0.010208873807259718
+      },
+      "target_probabilities": {},
+      "latency_ms": 798,
+      "elapsed_ms": 11775,
+      "usage": {
+        "input_tokens": 1833,
+        "output_tokens": 0
+      }
+    }
+  ],
+  "provider_calls": [
+    {
+      "model": "fastjev-qwen3.8-27b-exl3",
+      "usage": {
+        "input_tokens": 3804,
+        "output_tokens": 0
+      },
+      "fastjev": {
+        "probability_status": "conditional option scores; uncalibrated as decision confidence",
+        "confidence_method": "one-minus-normalized-entropy",
+        "prompt_versions": [
+          "direct-options-v1"
+        ]
+      }
+    },
+    {
+      "model": "fastjev-qwen3.8-27b-exl3",
+      "usage": {
+        "input_tokens": 3894,
+        "output_tokens": 0
+      },
+      "fastjev": {
+        "probability_status": "conditional option scores; uncalibrated as decision confidence",
+        "confidence_method": "one-minus-normalized-entropy",
+        "prompt_versions": [
+          "direct-options-v1"
+        ]
+      }
+    },
+    {
+      "model": "fastjev-qwen3.8-27b-exl3",
+      "usage": {
+        "input_tokens": 3732,
+        "output_tokens": 0
+      },
+      "fastjev": {
+        "probability_status": "conditional option scores; uncalibrated as decision confidence",
+        "confidence_method": "one-minus-normalized-entropy",
+        "prompt_versions": [
+          "direct-options-v1"
+        ]
+      }
+    },
+    {
+      "model": "fastjev-qwen3.8-27b-exl3",
+      "usage": {
+        "input_tokens": 3565,
+        "output_tokens": 0
+      },
+      "fastjev": {
+        "probability_status": "conditional option scores; uncalibrated as decision confidence",
+        "confidence_method": "one-minus-normalized-entropy",
+        "prompt_versions": [
+          "direct-options-v1"
+        ]
+      }
+    },
+    {
+      "model": "fastjev-qwen3.8-27b-exl3",
+      "usage": {
+        "input_tokens": 3637,
+        "output_tokens": 0
+      },
+      "fastjev": {
+        "probability_status": "conditional option scores; uncalibrated as decision confidence",
+        "confidence_method": "one-minus-normalized-entropy",
+        "prompt_versions": [
+          "direct-options-v1"
+        ]
+      }
+    },
+    {
+      "model": "fastjev-qwen3.8-27b-exl3",
+      "usage": {
+        "input_tokens": 1833,
+        "output_tokens": 0
+      },
+      "fastjev": {
+        "probability_status": "conditional option scores; uncalibrated as decision confidence",
+        "confidence_method": "one-minus-normalized-entropy",
+        "prompt_versions": [
+          "direct-options-v1"
+        ]
+      }
+    }
+  ],
+  "text_calls": [
+    {
+      "model": "/opt/qwen3.5-4b-modelscope-20260922",
+      "latency_ms": 1148,
+      "usage": {
+        "completion_tokens": 11,
+        "prompt_tokens": 408,
+        "total_tokens": 419
+      },
+      "field": "Destination",
+      "value": "Lisbon"
+    }
+  ]
+}
