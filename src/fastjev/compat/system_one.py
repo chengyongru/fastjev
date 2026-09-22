@@ -42,13 +42,22 @@ class SystemOneAdapter:
                 tuple(Option(option["id"], option["description"]) for option in row["options"]),
             )
             for row in rows
+            if len(row["options"]) > 1
         }
         try:
-            decisions = self.engine.decide_many(payload["state"], questions)
+            decisions = self.engine.decide_many(payload["state"], questions) if questions else {}
         except ValidationError as error:
             raise SystemOneValidationError(f"questions: {error}") from error
         results = []
         for spec in specs:
+            if len(spec.option_ids) == 1:
+                results.append({
+                    "id": spec.id,
+                    "option_ids": list(spec.option_ids),
+                    "probabilities": [1.0],
+                    "input_tokens": 0,
+                })
+                continue
             decision = decisions[spec.id]
             results.append({
                 "id": spec.id,

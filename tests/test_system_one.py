@@ -75,13 +75,17 @@ def test_mixed_system_one_questions_are_adapted_and_returned():
 def test_structured_values_and_option_names_are_present_in_rows():
     _, rows = request_rows(payload(), MODEL)
     team = next(row for row in rows if row["id"] == "team")
+    assert team["question"].startswith("{\n  ")
+    assert "\n  \"question\"" in team["question"]
     assert '"question": "Which team?"' in team["question"]
     assert team["options"][0]["description"].startswith("billing:")
+    assert "\n  \"covers\"" in team["options"][1]["description"]
     assert '"covers": "Bugs and integrations"' in team["options"][1]["description"]
     assert team["options"][2]["description"] == "other"
 
 
 def test_confidence_has_expected_entropy_limits():
+    assert distribution_confidence([1.0]) == pytest.approx(1.0)
     assert distribution_confidence([0.5, 0.5]) == pytest.approx(0.0)
     assert distribution_confidence([1.0, 0.0]) == pytest.approx(1.0)
     assert math.isfinite(distribution_confidence([0.1, 0.7, 0.2]))
@@ -106,8 +110,33 @@ def test_choice_backend_limit_is_explicit():
         "instructions": "Pick one",
         "criteria": {str(index): None for index in range(17)},
     }}
-    with pytest.raises(SystemOneValidationError, match="2-16"):
+    with pytest.raises(SystemOneValidationError, match="1-16"):
         request_rows(request, MODEL)
+
+
+def test_single_choice_is_returned_without_calling_the_scorer():
+    request = payload()
+    request["questions"] = {
+        "field": {
+            "type": "choice",
+            "instructions": "Choose the only compatible field",
+            "criteria": {"destination": "Destination input"},
+        }
+    }
+
+    def unexpected_score(_rows):
+        raise AssertionError("a singleton choice must not invoke the model")
+
+    service = SystemOneService(unexpected_score, MODEL, "Test model", "2026-09-20")
+    response = service.evaluate(request)
+
+    assert response["answers"]["field"] == {
+        "type": "choice",
+        "choice": "destination",
+        "probabilities": {"destination": pytest.approx(1.0)},
+        "confidence": pytest.approx(1.0),
+    }
+    assert response["usage"] == {"input_tokens": 0, "output_tokens": 0}
 
 
 def test_optional_instructions_receive_type_specific_fallbacks():
