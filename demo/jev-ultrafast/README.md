@@ -31,15 +31,15 @@ The accepted run used one RTX 5090 and these pinned sources:
 
 | Component | Exact source |
 |---|---|
-| FastJev runtime branch | `240230062901b92fba2ab79d5ecff751369ef7be` plus the System One adapter changes in this branch |
+| FastJev | `7a0d200abc3e79655fa1112f7568bb669829d612` |
 | Jev Ultrafast | `1231850a0bf1a0c0341fe408ef1668dbbfdfac46` |
 | Decision model | `turboderp/Qwen3.8-27B-exl3` at `a35e75a73baee51da709329d19294245cbeeb5d8` |
 | Text helper | `Qwen/Qwen3.5-4B` at `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` |
 
 The agent completed all five browser actions and returned `DONE` on its sixth
-FastJev request. The run took 11.776 seconds from the first decision request to
-the verified result. Median decision-request latency was 1.456 seconds. The
-first request included the cold EXL3 path; the separate text helper took 1.148
+FastJev request. The run took 10.375 seconds from the first decision request to
+the verified result. Median decision-request latency was 1.388 seconds. The
+first request included the cold EXL3 path; the separate text helper took 0.602
 seconds to return `Lisbon`.
 
 The independent verifier confirmed the final `#casa-flora` URL, destination,
@@ -61,8 +61,8 @@ Artifacts:
 - [Verified action, decision, and usage trace](assets/verified-run.json)
 - [Artifact checksums](assets/SHA256SUMS)
 
-The 13.876-second presentation adds an 850 ms lead-in and a 1.25-second result
-hold. The 11.776-second browser run remains at 1× speed.
+The 12.475-second presentation adds an 850 ms lead-in and a 1.25-second result
+hold. The 10.375-second browser run remains at 1× speed.
 
 ## Reproduce
 
@@ -70,7 +70,7 @@ Install the FastJev runtime-capabilities branch and its EXL3 and API extras in a
 isolated environment:
 
 ```bash
-git checkout 240230062901b92fba2ab79d5ecff751369ef7be
+git checkout 7a0d200abc3e79655fa1112f7568bb669829d612
 python -m venv .venv
 . .venv/bin/activate
 pip install -e '.[test,torch,api,exl3]'
@@ -120,7 +120,7 @@ uv run python /path/to/fastjev/demo/jev-ultrafast/record.py /new/run-directory \
   --model-source turboderp/Qwen3.8-27B-exl3 \
   --model-revision a35e75a73baee51da709329d19294245cbeeb5d8 \
   --text-model /path/to/Qwen3.5-4B \
-  --fastjev-revision 240230062901b92fba2ab79d5ecff751369ef7be \
+  --fastjev-revision 7a0d200abc3e79655fa1112f7568bb669829d612 \
   --jev-ultrafast-revision 1231850a0bf1a0c0341fe408ef1668dbbfdfac46
 ```
 
