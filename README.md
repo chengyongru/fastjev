@@ -95,6 +95,33 @@ Install `fastjev[llama-cpp]` to run GGUF files from disk or Hugging Face. The
 [Python SDK guide](docs/SDK.md) covers Apple Silicon, EXL3, llama.cpp prefix reuse,
 calibration, and provenance.
 
+### Batch multiple states
+
+Use `decide_batch` to apply the same questions to multiple inputs:
+
+```python
+from fastjev import Boolean, FastJev
+
+with FastJev.from_pretrained(
+    "Qwen/Qwen3.5-4B",
+    revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    batch_size=8,
+    sort_by_length=True,
+) as jev:
+    results = jev.decide_batch(
+        ["Please refund the duplicate charge.", "I cannot log in."],
+        {"refund": Boolean("Does the customer request a refund?")},
+    )
+    print([item["refund"].value for item in results])
+```
+
+Torch batching is opt-in; the default `batch_size=1` retains sequential scoring.
+The size counts decision prompts, not states. Results retain input order, but
+batch shape can change reduced-precision probabilities and close decisions.
+This is a Python SDK feature; the CLI and HTTP service do not automatically batch
+multiple states. See the [SDK guide](docs/SDK.md#evaluate-multiple-states) and
+[measurements and limitations](docs/BATCHING.md).
+
 ### Install the latest source
 
 Use an editable checkout to run the latest code from `main`.

@@ -18,6 +18,6 @@ def test_release_version_is_consistent():
     with (ROOT / "pyproject.toml").open("rb") as stream:
         project_version = tomllib.load(stream)["project"]["version"]
 
-    assert project_version == "0.1.1"
+    assert project_version == "0.2.0"
     assert __version__ == project_version
     assert create_app(object()).version == project_version

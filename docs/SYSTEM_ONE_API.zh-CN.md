@@ -12,6 +12,11 @@ fastjev 可以公开 TypeSafe 文档中 System One HTTP API 的 wire-compatible 
 - 多个问题共享同一个请求状态，并通过 fastjev 的直接选项 logits 路径独立评分。本服务不公开实验性的共享前缀评分器，因为仓库未声明它的决策与直接评分语义等价。
 - `GET /v1/models` 返回唯一配置的 fastjev 模型。
 
+`POST /v1/systemone` 每次请求接受一个 state。列表形式的 `state` 是一份 JSON
+证据，不是 batch。服务不会合并并发请求，也没有暴露 Python SDK 的 Torch batch
+大小和长度排序配置。跨 state 批处理请使用
+[`FastJev.decide_batch`](SDK.zh-CN.md#批量处理多个-state)。
+
 ## 安装与运行
 
 在 fastjev 所在的同一隔离环境中安装 API extra：
