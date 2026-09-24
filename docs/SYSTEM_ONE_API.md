@@ -10,6 +10,11 @@ The implemented contract follows the public [TypeSafe API reference](https://doc
 - Multiple questions share one request state and are scored independently with fastjev's direct option-logit path. The experimental shared-prefix scorer is not exposed by this service because the repository does not claim that its decisions are semantically equivalent to direct scoring.
 - `GET /v1/models` returns the single configured fastjev model.
 
+`POST /v1/systemone` accepts one state per request. A list-valued `state` is one
+JSON evidence value, not a batch. The service does not combine concurrent requests
+or expose the Python SDK's Torch batch-size and length-sorting settings. Use
+[`FastJev.decide_batch`](SDK.md#evaluate-multiple-states) for cross-state batching.
+
 ## Install and run
 
 Install the API extra in the same isolated environment as fastjev:

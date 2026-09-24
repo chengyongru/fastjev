@@ -65,7 +65,16 @@ MPS 上使用独立的 batch-one suffix，因为该执行形态在 Apple GPU 上
 backend 在编码时检查，后续 prompt 失败时不会返回部分结果。
 
 ```python
-from fastjev import Boolean, FastJev
+from fastjev import Boolean, Choice, FastJev, Option
+
+states = ["请退还重复扣款。", "我无法登录。"]
+questions = {
+    "refund": Boolean("客户是否要求退款？"),
+    "team": Choice("哪个团队应该处理这个请求？", [
+        Option("billing", "支付、账单和退款。"),
+        Option("access", "登录和账户访问。"),
+    ]),
+}
 
 with FastJev.from_pretrained(
     "Qwen/Qwen3.5-4B",
@@ -73,16 +82,22 @@ with FastJev.from_pretrained(
     batch_size=8,
     sort_by_length=True,
 ) as jev:
-    results = jev.decide_batch(
-        ["请退还重复扣款。", "我无法登录。"],
-        {"refund": Boolean("客户是否要求退款？")},
-    )
-    print([item["refund"].value for item in results])
+    results = jev.decide_batch(states, questions)
+    for state, answers in zip(states, results):
+        print(state, answers["refund"].value, answers["team"].value)
+        print(answers["team"].probabilities, answers["team"].provenance)
 ```
 
+返回结构为 `[{"refund": Decision, "team": Decision}, ...]`。
+`results[0]["team"]` 对应第一个 state 的团队问题，其 `id` 为 `"team"`。所有 state
+使用相同的问题和选项顺序；此接口不接受每条 state 各自定义的 schema，也不接受
+state 生成器。
+
 Torch 的 `batch_size` 限制每次前向的**决策 prompt 数量**，不是 state 数量；每个
-state 的每个问题各占一个 prompt。默认值为 `1`，保持顺序评分。`TorchBackend`
-也接受这些配置，配置同样作用于 `decide_many`。`sort_by_length=True` 在最多八个
+state 的每个问题各占一个 prompt。它必须是正整数，默认值为 `1`，保持顺序评分。
+两个 state 各回答两个问题，共产生四个 prompt。`TorchBackend` 也接受这些配置，
+配置同样作用于 `decide_many`。`sort_by_length` 默认为 `False`，在 `batch_size=1`
+时不生效。`sort_by_length=True` 在最多八个
 batch 的窗口内按 prompt 长度分组，之后恢复原始顺序；这样能减少混合长度输入的
 padding，但会缓存更多编码输入。SDK 会构造完整的请求和结果列表，超大数据集应由
 应用分段调用。
@@ -92,6 +107,12 @@ Torch 使用左侧 padding、attention mask 和不含 padding 的 token 位置�
 概率及接近边界的 argmax。应在部署工作负载上验证 batch 配置及校准 profile；批处理
 本身不代表已校准。OOM 会直接抛出，不自动重试。其他 backend 使用相同 API，但各自
 决定执行方式。
+
+这些配置属于 Python SDK。`fastjev-score` 和 `fastjev-serve` 没有 Torch
+`batch_size` 或 `sort_by_length` 命令行参数，HTTP 服务也不会合并独立请求。
+HTTP 请求中列表形式的 `state` 仍是一份 JSON 证据，不表示多个独立 state。
+处理大集合时，应先分成多个列表，再分别调用 `decide_batch`。建议从较小的 batch
+开始；工作负载超出可用加速器内存时，减小 batch 后重新调用。
 
 Torch 张量批处理中的 `forward_seconds` 是共享的 batch 前向耗时；`total_seconds`
 加上共享的窗口编码耗时。这些值不能逐行相加，也不是单请求延迟。吞吐应使用公共调用
@@ -297,7 +318,13 @@ answers = jev.decide_many(state, {
 })
 ```
 
-`FastJev` 会串行调用 backend，避免并发使用同一个常驻模型。vLLM backend 会批量处理一次 `decide_many` 收到的所有请求；EXL3 会按顺序执行。Torch 与 MLX 提供独立的实验性 shared-prefix 模式；llama.cpp 在 `prefix_reuse=True` 时复用完全相同的 state 前缀。
+一个 state 回答多个问题时使用 `decide_many`；多个 state 回答相同问题时使用
+[`decide_batch`](#批量处理多个-state)。两者通过相同的 backend 协议提交请求。
+`FastJev` 会串行调用 backend，避免并发使用同一个常驻模型，但一次调用内部仍可
+使用张量批处理。Torch 默认顺序评分，配置后使用有大小上限的 batch；vLLM 会将
+任一方法提交的请求合批，EXL3 和 MLX 按顺序执行。Torch 与 MLX 还提供独立的
+实验性 shared-prefix 模式；llama.cpp 在 `prefix_reuse=True` 时复用完全相同的
+state 前缀。
 
 ## Backend 协议
 

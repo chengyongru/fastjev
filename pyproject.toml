@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fastjev"
-version = "0.1.1"
+version = "0.2.0"
 description = "SDK-first, self-hosted semantic decisions with open models"
 readme = "README.md"
 license = {file = "LICENSE"}

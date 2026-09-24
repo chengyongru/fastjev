@@ -68,7 +68,16 @@ All state/schema validation precedes scoring. Prompt token limits are checked by
 the backend during encoding; no partial result is returned if a later prompt fails.
 
 ```python
-from fastjev import Boolean, FastJev
+from fastjev import Boolean, Choice, FastJev, Option
+
+states = ["Please refund the duplicate charge.", "I cannot log in."]
+questions = {
+    "refund": Boolean("Does the customer request a refund?"),
+    "team": Choice("Which team should handle the request?", [
+        Option("billing", "Payments, invoices, and refunds."),
+        Option("access", "Login and account access."),
+    ]),
+}
 
 with FastJev.from_pretrained(
     "Qwen/Qwen3.5-4B",
@@ -76,16 +85,22 @@ with FastJev.from_pretrained(
     batch_size=8,
     sort_by_length=True,
 ) as jev:
-    results = jev.decide_batch(
-        ["Please refund the duplicate charge.", "I cannot log in."],
-        {"refund": Boolean("Does the customer request a refund?")},
-    )
-    print([item["refund"].value for item in results])
+    results = jev.decide_batch(states, questions)
+    for state, answers in zip(states, results):
+        print(state, answers["refund"].value, answers["team"].value)
+        print(answers["team"].probabilities, answers["team"].provenance)
 ```
 
+The result has the shape `[{"refund": Decision, "team": Decision}, ...]`:
+`results[0]["team"]` answers the first state's team question, and its `id` is
+`"team"`. Each state uses the same questions and option order. This API does not
+accept a different question schema per state or a generator of states.
+
 Torch's `batch_size` bounds **decision prompts per forward pass**, not states;
-each state contributes one prompt per question. Its default is `1` (sequential).
+each state contributes one prompt per question. It must be a positive integer;
+its default is `1` (sequential). Two states with two questions produce four prompts.
 The same options are available on `TorchBackend` and apply to `decide_many` too.
+`sort_by_length` defaults to `False` and has no effect when `batch_size=1`.
 `sort_by_length=True` groups prompts within windows of up to eight batches and
 restores result order. It reduces padding for mixed lengths but buffers more
 encoded input. The SDK materializes the request/result list; split very large
@@ -97,6 +112,13 @@ change reduced-precision probabilities or close argmax decisions. Validate the
 batch configuration on the deployment workload, including any calibration profile;
 batching does not establish calibration. OOM errors propagate without automatic retry.
 Other backends accept the same API and control their own execution strategy.
+
+These settings belong to the Python SDK. `fastjev-score` and `fastjev-serve` do
+not expose Torch `batch_size` or `sort_by_length` flags, and the HTTP service does
+not combine separate requests into a batch. A list-valued HTTP `state` remains
+one JSON evidence value, not a batch of independent states. To process a large
+collection, split it into lists and call `decide_batch` for each list. Start with
+a small batch and reduce it if the workload exceeds available accelerator memory.
 
 For Torch tensor batches, each decision's `forward_seconds` is the shared batch
 forward duration; `total_seconds` adds the shared window encoding duration. These
@@ -308,7 +330,15 @@ answers = jev.decide_many(state, {
 })
 ```
 
-`FastJev` serializes calls into a backend so one resident model is not used concurrently. The vLLM backend batches all requests received by one `decide_many` call. EXL3 evaluates them in order. Torch and MLX expose separate experimental shared-prefix modes; llama.cpp reuses an exact state prefix when `prefix_reuse=True`.
+Use `decide_many` for one state with several questions, or
+[`decide_batch`](#evaluate-multiple-states) for several states with the same
+questions. Both submit requests through the same backend protocol. `FastJev`
+serializes backend calls so one resident model is not used concurrently; this
+does not prevent tensor batching within a call. Torch uses sequential scoring
+by default or bounded batches when configured. vLLM batches the requests from
+either method; EXL3 and MLX evaluate them in order. Torch and MLX also expose
+separate experimental shared-prefix modes; llama.cpp reuses an exact state prefix
+when `prefix_reuse=True`.
 
 ## Backend protocol
 

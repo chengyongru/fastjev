@@ -74,6 +74,32 @@ print(result.provenance)
 
 使用本地或 Hugging Face 托管的 GGUF 文件时安装 `fastjev[llama-cpp]`。[Python SDK 指南](docs/SDK.zh-CN.md)介绍 Apple Silicon、EXL3、llama.cpp 前缀复用、校准与来源记录。
 
+### 批量处理多个 state
+
+使用 `decide_batch` 将同一组问题应用到多条输入：
+
+```python
+from fastjev import Boolean, FastJev
+
+with FastJev.from_pretrained(
+    "Qwen/Qwen3.5-4B",
+    revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    batch_size=8,
+    sort_by_length=True,
+) as jev:
+    results = jev.decide_batch(
+        ["请退还重复扣款。", "我无法登录。"],
+        {"refund": Boolean("客户是否要求退款？")},
+    )
+    print([item["refund"].value for item in results])
+```
+
+Torch 批处理需要显式开启，默认 `batch_size=1` 保持顺序评分。batch 大小按决策
+prompt 计数，不是 state 数量。结果保留输入顺序，但 batch 形状可能改变低精度概率
+及接近边界的选择。这是 Python SDK 能力；CLI 和 HTTP 服务不会自动将多个 state
+合批。详见 [SDK 指南](docs/SDK.zh-CN.md#批量处理多个-state)和
+[测量结果与限制](docs/BATCHING.zh-CN.md)。
+
 ### 安装最新源码
 
 需要运行 `main` 的最新代码时使用可编辑安装。
