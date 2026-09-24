@@ -278,7 +278,57 @@ def main():
     if round(max_probability_delta, 6) != 0.001774:
         raise AssertionError("llama.cpp prefix-reuse probability delta claim disagrees")
     checks += 3
+    checks += verify_cross_state()
     print(json.dumps({"verified_summary_claims": checks, "status": "ok"}))
+
+
+def verify_cross_state():
+    """Recompute batch timing, drift, and model quality from individual decisions."""
+    from evaluate import align, balanced_metric, basic
+
+    batch = load("results/raw/runtime/rtx5090-cross-state-batching.json")
+    baseline = batch["modes"]["sequential"]["runs"][0]["decisions"]
+    checks = 0
+    for mode in batch["modes"].values():
+        runs = mode["runs"]
+        close(len(runs), batch["repeats"])
+        median = statistics.median(run["wall_seconds"] for run in runs)
+        close(mode["median_seconds"], median)
+        close(mode["decisions_per_second"], len(batch["states"]) * len(batch["questions"]) / median)
+        drift, changed = [], 0
+        for run in runs:
+            close(len(run["decisions"]), len(baseline))
+            for expected, actual in zip(baseline, run["decisions"]):
+                close(list(actual), list(batch["questions"]))
+                for key, decision in actual.items():
+                    close(decision["id"], key)
+                    close(decision["usage"], expected[key]["usage"])
+                    close(decision["usage"]["output_tokens"], 0)
+                    close(decision["provenance"], expected[key]["provenance"])
+                    close(sum(decision["probabilities"].values()), 1.0)
+                    changed += decision["selected"] != expected[key]["selected"]
+                    drift.extend(abs(value - decision["probabilities"][option])
+                                 for option, value in expected[key]["probabilities"].items())
+        close(mode["argmax_disagreements_vs_first_sequential"], changed)
+        close(mode["max_probability_drift"], max(drift))
+        close(mode["mean_probability_drift"], statistics.mean(drift))
+        checks += 6
+    comparison = load("results/raw/runtime/rtx5090-cross-state-model-comparison-verified.json")
+    for name, mode in comparison["modes"].items():
+        for dataset, result in mode["datasets"].items():
+            gold = rows(f"benchmarks/data/{dataset}.jsonl")
+            aligned = align(gold, result["predictions"])
+            close(len(result["predictions"]), len(gold))
+            close(result["metrics"]["accuracy"], basic(aligned)["accuracy"])
+            balanced = balanced_metric(aligned)
+            close(result["metrics"]["mean_family_balanced_accuracy"], balanced)
+            close(result["decisions_per_second"], len(gold) / result["wall_seconds"])
+            if name != "qwen4b_direct":
+                reference = comparison["modes"]["qwen4b_direct"]["datasets"][dataset]["metrics"]
+                close(comparison["comparisons"][dataset][name]["difference"],
+                      balanced - reference["mean_family_balanced_accuracy"])
+            checks += 4
+    return checks
 
 
 if __name__ == "__main__":

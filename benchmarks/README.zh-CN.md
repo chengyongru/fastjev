@@ -175,3 +175,9 @@ fetcher 设有字节数限制，并验证每个下载文件的 SHA-256。仓库�
 (cd results/raw && sha256sum -c SHA256SUMS)
 python benchmarks/verify_published.py
 ```
+
+## 跨 state 批处理
+
+使用 cross_state_batching.py 测量混合长度的公共 SDK 调用，使用
+compare_decision_models.py 运行可选的固定 this-that 对比。
+[复现命令和测量范围](../docs/BATCHING.zh-CN.md#复现)与逐行报告一并提供。

@@ -20,6 +20,7 @@
 | Qwen3.5-4B GGUF | https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF | `4168f45a16a1290d65a4ec0fa312ae917a4c15d6` | 外部 Q4_K_M 浏览器模型；不在本仓库重新分发权重。 |
 | Qwen3.8-27B EXL3 | https://huggingface.co/turboderp/Qwen3.8-27B-exl3 | `a35e75a73baee51da709329d19294245cbeeb5d8`（5.00 bpw） | 可选 EXL3 验证 checkpoint；沿用上游条款与 Qwen 基础模型许可证。 |
 | ExLlamaV3 | https://github.com/turboderp-org/exllamav3 | `1.5.1` | 可选 EXL3 推理 runtime；MIT。 |
+| this-that-model-1.0 | https://huggingface.co/flock-io/this-that-model-1.0 | `3d927195c4f9845efe66c5715883a7a0f42b1239` | 可选对比模型；model card 标注 MIT；不重新分发权重。 |
 
 原有 URL 于 2026-09-18 完成检查；EXL3 条目于 2026-09-22 检查。下载的评估输入由 SHA-256 固定。
 
