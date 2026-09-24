@@ -32,3 +32,5 @@ a4d1a4b7594ced82f4bb40426f7ae6caa44f0a5904f2dfd524f03b58d77eb670  runtime/rtx509
 2f8c548acdf50a9d301545677ae7ea3583eb87dfea28de8f3100322f8bf543b2  runtime/rtx5090-llama-cpp-q4-k-m-direct-shell.json
 041af37f90f74b08380b96353178536c8ae6f10efd3b2cb43890fd16594a141b  runtime/rtx5090-llama-cpp-q4-k-m-prefix-shell.json
 50e0236e2edd4022640707a7442565e8335f6627dcc23a5b59683b8f4ab5f0b9  runtime/rtx5090-torch-qwen3.5-4b-shell-calibrated.json
+3b6d7e6eef7e3653e83a366ae1f7c13d20c0444c06d0a4ce734e7e58903f201b  runtime/rtx5090-cross-state-batching.json
+2fac45cfae68475ace70289ec90e12bcce26c2c82553be44c24903487dea2cbe  runtime/rtx5090-cross-state-model-comparison-verified.json

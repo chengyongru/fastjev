@@ -18,6 +18,7 @@ No model weights or third-party raw evaluation records are distributed here.
 | Qwen3.5-4B GGUF | https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF | `4168f45a16a1290d65a4ec0fa312ae917a4c15d6` | External Q4_K_M browser model; weights are not redistributed. |
 | Qwen3.8-27B EXL3 | https://huggingface.co/turboderp/Qwen3.8-27B-exl3 | `a35e75a73baee51da709329d19294245cbeeb5d8` (5.00 bpw) | Optional EXL3 validation checkpoint; upstream terms and the Qwen base-model license apply. |
 | ExLlamaV3 | https://github.com/turboderp-org/exllamav3 | `1.5.1` | Optional EXL3 inference runtime; MIT. |
+| this-that-model-1.0 | https://huggingface.co/flock-io/this-that-model-1.0 | `3d927195c4f9845efe66c5715883a7a0f42b1239` | Optional comparison checkpoint; MIT on its model card; weights are not redistributed. |
 
 The original URLs were checked on 2026-09-18; the EXL3 entries were checked on
 2026-09-22. Downloaded evaluation inputs are pinned by SHA-256.

@@ -176,3 +176,9 @@ The source-specific transformations are described in [METHOD.md](../docs/METHOD.
 (cd results/raw && sha256sum -c SHA256SUMS)
 python benchmarks/verify_published.py
 ```
+
+## Cross-state batching
+
+Run cross_state_batching.py for the mixed-length public SDK benchmark and
+compare_decision_models.py for the optional pinned this-that comparison.
+[Commands and measurement scope](../docs/BATCHING.md#reproduce) accompany the row-level reports.

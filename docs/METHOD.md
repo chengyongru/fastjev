@@ -74,3 +74,8 @@ Direct modes are fresh batch-one scoring, serial suffixes after one state prefil
 - Softmax over allowed tokens is conditional on the supplied alternatives; it is not calibrated operational confidence.
 - Prefix-cache speedups are implementation results, not evidence about Jev's disclosed architecture.
 - A reranker is expected to be strongest on ranking. Its categorical threshold metrics should not be confused with ranking quality.
+
+## Cross-state batching protocol
+
+The [batching report](BATCHING.md) defines the separate mixed-length SDK fixture,
+warmup and timing scope, batch sizes, precision, and model comparison protocol.

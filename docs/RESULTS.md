@@ -161,3 +161,8 @@ Not reproduced or established:
 - The full 711-row TypeSafe benchmark or an independently operated Jev endpoint.
 
 The next justified phase is targeted training for decision semantics and calibration, judged against these frozen baselines. It should proceed only after expanding external gold tasks and defining a held-out operational calibration target. A generic reranker fine-tune would answer the wrong question.
+
+## Cross-state batching and smaller decision models
+
+See [cross-state measurements](BATCHING.md) for the RTX 5090 public SDK workload,
+batch-induced probability changes, and the pinned this-that comparison on owned fixtures.
