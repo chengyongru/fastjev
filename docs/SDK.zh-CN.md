@@ -56,6 +56,48 @@ MPS 上使用独立的 batch-one suffix，因为该执行形态在 Apple GPU 上
 
 当 engine 生命周期有明确作用域时，可将 `FastJev` 用作 context manager。关闭 engine 会关闭 backend，并拒绝后续决策；内置 backend 会释放模型与 tokenizer 引用，但不修改全局 accelerator 状态。
 
+## 批量处理多个 state
+
+`decide_many(state, questions)` 对一个 state 回答多个问题；
+`decide_batch(states, questions)` 对一组 state 应用同一问题映射，按输入顺序返回
+决策字典列表。字典键和 `Decision.id` 保留原始问题 ID。字符串和对象需要放入序列，
+空序列在 schema 有效时返回 `[]`。所有 state/schema 都在评分前验证；token 上限由
+backend 在编码时检查，后续 prompt 失败时不会返回部分结果。
+
+```python
+from fastjev import Boolean, FastJev
+
+with FastJev.from_pretrained(
+    "Qwen/Qwen3.5-4B",
+    revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    batch_size=8,
+    sort_by_length=True,
+) as jev:
+    results = jev.decide_batch(
+        ["请退还重复扣款。", "我无法登录。"],
+        {"refund": Boolean("客户是否要求退款？")},
+    )
+    print([item["refund"].value for item in results])
+```
+
+Torch 的 `batch_size` 限制每次前向的**决策 prompt 数量**，不是 state 数量；每个
+state 的每个问题各占一个 prompt。默认值为 `1`，保持顺序评分。`TorchBackend`
+也接受这些配置，配置同样作用于 `decide_many`。`sort_by_length=True` 在最多八个
+batch 的窗口内按 prompt 长度分组，之后恢复原始顺序；这样能减少混合长度输入的
+padding，但会缓存更多编码输入。SDK 会构造完整的请求和结果列表，超大数据集应由
+应用分段调用。
+
+Torch 使用左侧 padding、attention mask 和不含 padding 的 token 位置。输入用量
+不计 padding，输出 token 数仍为零。增大 batch 会增加显存占用，也可能改变低精度
+概率及接近边界的 argmax。应在部署工作负载上验证 batch 配置及校准 profile；批处理
+本身不代表已校准。OOM 会直接抛出，不自动重试。其他 backend 使用相同 API，但各自
+决定执行方式。
+
+Torch 张量批处理中的 `forward_seconds` 是共享的 batch 前向耗时；`total_seconds`
+加上共享的窗口编码耗时。这些值不能逐行相加，也不是单请求延迟。吞吐应使用公共调用
+的整体墙钟时间。`benchmarks/cross_state_batching.py` 会记录顺序、普通批处理和长度
+分组三种模式，并保存逐决策结果。
+
 ## 通过 llama.cpp 加载 GGUF
 
 使用本地 GGUF（包括桌面模型管理器下载的文件）或 Hugging Face 上托管的 GGUF 时，安装可选的 llama.cpp Python binding：
