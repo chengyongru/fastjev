@@ -57,6 +57,53 @@ batch-one suffixes on MPS because that execution shape is faster on Apple GPUs.
 
 Use `FastJev` as a context manager when its lifetime is scoped. Closing an engine closes its backend and rejects later decisions; built-in backends release their model and tokenizer references without modifying global accelerator state.
 
+## Evaluate multiple states
+
+`decide_many(state, questions)` evaluates several questions for one state.
+`decide_batch(states, questions)` applies the same question mapping to a sequence
+of states and returns one decision dictionary per state, in input order. Dictionary
+keys and `Decision.id` retain the supplied question IDs. Strings and dictionaries
+must be wrapped in a sequence; an empty sequence returns `[]` with a valid schema.
+All state/schema validation precedes scoring. Prompt token limits are checked by
+the backend during encoding; no partial result is returned if a later prompt fails.
+
+```python
+from fastjev import Boolean, FastJev
+
+with FastJev.from_pretrained(
+    "Qwen/Qwen3.5-4B",
+    revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    batch_size=8,
+    sort_by_length=True,
+) as jev:
+    results = jev.decide_batch(
+        ["Please refund the duplicate charge.", "I cannot log in."],
+        {"refund": Boolean("Does the customer request a refund?")},
+    )
+    print([item["refund"].value for item in results])
+```
+
+Torch's `batch_size` bounds **decision prompts per forward pass**, not states;
+each state contributes one prompt per question. Its default is `1` (sequential).
+The same options are available on `TorchBackend` and apply to `decide_many` too.
+`sort_by_length=True` groups prompts within windows of up to eight batches and
+restores result order. It reduces padding for mixed lengths but buffers more
+encoded input. The SDK materializes the request/result list; split very large
+collections into application-level chunks.
+
+Torch uses left padding, attention masks, and unpadded token positions. Input usage
+excludes padding; output tokens remain zero. Larger batches use more memory and can
+change reduced-precision probabilities or close argmax decisions. Validate the
+batch configuration on the deployment workload, including any calibration profile;
+batching does not establish calibration. OOM errors propagate without automatic retry.
+Other backends accept the same API and control their own execution strategy.
+
+For Torch tensor batches, each decision's `forward_seconds` is the shared batch
+forward duration; `total_seconds` adds the shared window encoding duration. These
+values are not additive or individual request latencies. Measure the public call's
+wall time for throughput. The benchmark in `benchmarks/cross_state_batching.py`
+records sequential, batched, and length-grouped calls with per-decision evidence.
+
 ## Load a GGUF through llama.cpp
 
 Install the optional llama.cpp Python bindings for a local GGUF file, including one downloaded through a desktop model manager, or for a GGUF hosted on Hugging Face:

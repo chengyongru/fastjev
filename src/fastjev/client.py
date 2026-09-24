@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+from dataclasses import replace
 from threading import Lock
 from typing import Mapping, Sequence
 
@@ -84,6 +85,8 @@ class FastJev:
         max_input_tokens: int = 4096,
         device: str = "auto",
         dtype: str = "bfloat16",
+        batch_size: int = 1,
+        sort_by_length: bool = False,
         calibration: TemperatureCalibration | None = None,
     ) -> "FastJev":
         """Convenience constructor for the built-in Torch backend."""
@@ -95,6 +98,8 @@ class FastJev:
             max_input_tokens=max_input_tokens,
             device=device,
             dtype=dtype,
+            batch_size=batch_size,
+            sort_by_length=sort_by_length,
         ), calibration=calibration)
 
     @property
@@ -111,6 +116,42 @@ class FastJev:
         questions: Mapping[str, Question],
     ) -> dict[str, Decision]:
         """Evaluate multiple questions in one backend call while preserving IDs."""
+        requests, value_maps, score_values = self._prepare(state, questions)
+        return self._decide_requests(requests, value_maps, score_values)
+
+    def decide_batch(
+        self,
+        states: Sequence[JsonValue],
+        questions: Mapping[str, Question],
+    ) -> list[dict[str, Decision]]:
+        """Evaluate shared questions over multiple states, retaining both input orders.
+
+        The backend controls execution batching. All states and questions are validated
+        before scoring; backend token limits are checked during prompt encoding.
+        """
+        if self._closed:
+            raise RuntimeError("FastJev is closed")
+        if not isinstance(states, Sequence) or isinstance(states, (str, bytes)):
+            raise ValidationError("states must be a sequence of states")
+        # Validate the schema even when there are no states to score.
+        self._prepare("schema validation", questions)
+        requests, value_maps, score_values, destinations = [], [], [], []
+        for index, state in enumerate(states):
+            prepared, values, numeric = self._prepare(state, questions)
+            for request in prepared:
+                destinations.append((index, request.id))
+                requests.append(replace(request, id=f"{index}:{request.id}"))
+            value_maps.extend(values)
+            score_values.extend(numeric)
+        if not requests:
+            return []
+        decisions = self._decide_requests(requests, value_maps, score_values)
+        results = [{} for _ in states]
+        for request, (index, question_id) in zip(requests, destinations):
+            results[index][question_id] = replace(decisions[request.id], id=question_id)
+        return results
+
+    def _prepare(self, state, questions):
         if self._closed:
             raise RuntimeError("FastJev is closed")
         _validate_state(state)
@@ -139,7 +180,12 @@ class FastJev:
             value_maps.append(values)
             score_values.append(numeric)
 
+        return requests, value_maps, score_values
+
+    def _decide_requests(self, requests, value_maps, score_values):
         with self._lock:
+            if self._closed:
+                raise RuntimeError("FastJev is closed")
             raw_results = list(self._backend.score(requests))
         if len(raw_results) != len(requests):
             raise BackendProtocolError("backend returned a different number of results than requested")
